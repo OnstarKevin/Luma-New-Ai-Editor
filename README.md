@@ -44,7 +44,7 @@ luma-web/
 
 - **Windows**：双击 `luma-start.bat`（自动探测 Node.js / Python）。
 - **macOS / Linux**：`./start.sh`（首次 `chmod +x start.sh`）。
-- **手动**：`node server.js`（或 `node server.js 9000`）/ `python -m http.server 8000`，访问 `http://localhost:8000/`。
+- **手动**：`node server.js`（或 `node server.js 9000`）/ `python -m http.server 6789`，访问 `http://localhost:6789/`（默认端口 6789，不易与常用开发端口冲突；被占用时 Node 会自动顺延）。
 
 > ⚠️ 不要直接双击 `index.html` 用 `file://` 打开：白板、字体、部分模块在 `file://` 下会被浏览器安全策略拦截。**务必通过服务器方式访问。**
 
@@ -103,7 +103,7 @@ luma-web/
 
 - **Windows**: double-click `luma-start.bat` (auto-detects Node.js / Python).
 - **macOS / Linux**: `./start.sh` (run `chmod +x start.sh` once first).
-- **Manual**: `node server.js` (or `node server.js 9000`) / `python -m http.server 8000`, then open `http://localhost:8000/`.
+- **Manual**: `node server.js` (or `node server.js 9000`) / `python -m http.server 6789`, then open `http://localhost:6789/` (default port 6789, avoids common dev-port clashes; Node auto-increments if busy).
 
 > ⚠️ Do **not** open `index.html` directly with `file://`: the whiteboard, fonts, and some modules are blocked by browser security policies under `file://`. Always use a server.
 

@@ -16,7 +16,7 @@
 3. 启动：
    - **Windows**：双击 `luma-start.bat`
    - **macOS / Linux**：终端里 `./start.sh`（首次需 `chmod +x start.sh`）
-4. 脚本会自动开浏览器到 `http://localhost:8000/`。关掉黑色窗口即停止。
+4. 脚本会自动开浏览器到 `http://localhost:6789/`。关掉黑色窗口即停止。
 
 > 一键脚本会自动探测 Node → Python，谁有就用谁；都没有才弹窗提示安装。
 
@@ -27,13 +27,14 @@
 cd luma-web
 
 # 用 Node（推荐）
-node server.js            # 默认 8000 端口，可加参数改端口： node server.js 9000
+node server.js            # 默认 6789 端口（不易与常用开发端口冲突），可加参数改端口： node server.js 9000
+                       # 若 6789 被占用，Node 会自动尝试 6790、6791… 直到 6799
 
 # 或用 Python
-python -m http.server 8000
+python -m http.server 6789
 ```
 
-浏览器打开 `http://localhost:8000/` 即可。
+浏览器打开 `http://localhost:6789/` 即可。
 
 ### ⚠️ 重要：不要直接双击 index.html
 
@@ -133,7 +134,7 @@ AI 副驾默认关闭、且不依赖任何外部服务即可正常编辑。
 
 **Q1：页面打不开 / 白屏？**
 - 确认是用服务器方式访问（`http://localhost:...`），不是双击 `index.html`。
-- 检查 8000 端口是否被占用：`node server.js 9000` 换端口试试。
+- 检查端口是否被占用：`node server.js 9000` 换端口试试（默认已是较冷门的 6789，冲突概率很低）。
 
 **Q2：白板打不开 / 一直转圈？**
 - 白板依赖 `whiteboard/vendor/` 目录完整。确认上传时没漏掉子文件夹。

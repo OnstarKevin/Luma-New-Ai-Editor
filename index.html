@@ -3,7 +3,23 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Luma · 本地预览</title>
+<title>Luma · 纯静态 Markdown 编辑器（离线 / 实时渲染 / 数学公式 / 白板）</title>
+<meta name="description" content="Luma 是一款高颜值、零构建、纯前端的 Markdown 编辑器：实时渲染、KaTeX 数学公式、代码高亮、无限白板、可选 AI 助手。纯静态站点，可完全离线运行，支持本地一键启动与云服务器部署。">
+<meta name="keywords" content="Markdown编辑器,Markdown editor,静态站点,离线编辑器,纯前端,无构建,KaTeX,代码高亮,白板,Excalidraw,文档工具,写作工具,笔记,开源,no-build,static site,offline,documentation tool">
+<meta name="author" content="Luma">
+<meta name="robots" content="index, follow">
+<meta name="theme-color" content="#f3f4f6">
+<!-- Open Graph / 社交分享 -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="Luma · 纯静态 Markdown 编辑器">
+<meta property="og:description" content="零构建、纯前端 Markdown 编辑器：实时渲染、KaTeX 公式、代码高亮、无限白板、可选 AI 助手。可完全离线运行。">
+<meta property="og:locale" content="zh_CN">
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Luma · 纯静态 Markdown 编辑器">
+<meta name="twitter:description" content="零构建、纯前端 Markdown 编辑器，支持实时渲染、公式、代码高亮、白板与可选 AI 助手，可完全离线。">
+<!-- 部署后请将下方 canonical 改为你的正式域名 -->
+<!-- <link rel="canonical" href="https://your-domain.example.com/"> -->
 <link rel="stylesheet" href="vite-app.css">
 <link rel="stylesheet" href="katex.min.css">
 <link rel="stylesheet" href="highlight/github.min.css">
@@ -13,6 +29,18 @@
 <style>
 html,body{margin:0;padding:0;height:100%;overflow:hidden;background:var(--bw-bg, #f3f4f6)}
 </style>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Luma",
+  "applicationCategory": "UtilitiesApplication",
+  "operatingSystem": "Any (static site)",
+  "description": "零构建、纯前端 Markdown 编辑器：实时渲染、KaTeX 数学公式、代码高亮、无限白板、可选 AI 助手，可完全离线运行。",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "CNY" },
+  "softwareVersion": "1.0.0"
+}
+</script>
 </head>
 <body style="height:100vh;overflow:hidden;">
 <div data-bw-doc-editor

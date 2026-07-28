@@ -25,16 +25,16 @@ where python >nul 2>nul
 if %errorlevel%==0 (
     echo [1/2] 检测到 Python，使用内置 http.server 启动...
     echo.
-    start "" http://localhost:8000/
-    python -m http.server 8000
+    start "" http://localhost:6789/
+    python -m http.server 6789
     goto :end
 )
 where py >nul 2>nul
 if %errorlevel%==0 (
     echo [1/2] 检测到 Python (py)，使用内置 http.server 启动...
     echo.
-    start "" http://localhost:8000/
-    py -m http.server 8000
+    start "" http://localhost:6789/
+    py -m http.server 6789
     goto :end
 )
 

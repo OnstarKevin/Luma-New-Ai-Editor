@@ -23,16 +23,16 @@ fi
 if command -v python3 >/dev/null 2>&1; then
     echo "[1/2] 检测到 Python3，使用内置 http.server 启动..."
     echo
-    (sleep 1; xdg-open http://localhost:8000/ 2>/dev/null || open http://localhost:8000/ 2>/dev/null || true) &
-    python3 -m http.server 8000
+    (sleep 1; xdg-open http://localhost:6789/ 2>/dev/null || open http://localhost:6789/ 2>/dev/null || true) &
+    python3 -m http.server 6789
     exit 0
 fi
 
 if command -v python >/dev/null 2>&1; then
     echo "[1/2] 检测到 Python，使用内置 http.server 启动..."
     echo
-    (sleep 1; xdg-open http://localhost:8000/ 2>/dev/null || open http://localhost:8000/ 2>/dev/null || true) &
-    python -m http.server 8000
+    (sleep 1; xdg-open http://localhost:6789/ 2>/dev/null || open http://localhost:6789/ 2>/dev/null || true) &
+    python -m http.server 6789
     exit 0
 fi
 
