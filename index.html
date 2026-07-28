@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Luma · 本地预览</title>
+<link rel="stylesheet" href="vite-app.css">
+<link rel="stylesheet" href="katex.min.css">
+<link rel="stylesheet" href="highlight/github.min.css">
+<link rel="stylesheet" href="bw-typora-editor.css">
+<link rel="stylesheet" href="bw-ai.css">
+<link rel="stylesheet" href="whiteboard/whiteboard.css">
+<style>
+html,body{margin:0;padding:0;height:100%;overflow:hidden;background:var(--bw-bg, #f3f4f6)}
+</style>
+</head>
+<body style="height:100vh;overflow:hidden;">
+<div data-bw-doc-editor
+     data-document-title="公式与代码测试"
+     data-autosave-url=""
+     data-media-upload-url=""
+     data-ai-assist-url=""
+     data-document-revision="1">
+<div hidden data-editor-document>{
+  "type": "doc",
+  "content": [
+    {"type":"heading","attrs":{"level":1},"content":[{"type":"text","text":"Luma 测试页"}]},
+    {"type":"paragraph","content":[{"type":"text","text":"支持 Markdown 渲染、Shift+空格切换源码/预览。"}]},
+    {"type":"heading","attrs":{"level":2},"content":[{"type":"text","text":"数学公式测试"}]},
+    {"type":"blockMath","content":[{"type":"rawLatex","source":"E = mc^2"}]},
+    {"type":"blockMath","content":[{"type":"rawLatex","source":"\\int_{-\\infty}^{\\infty} e^{-x^2} \\,dx = \\sqrt{\\pi}"}]},
+    {"type":"blockMath","content":[{"type":"rawLatex","source":"\\sum_{k=1}^{n} k = \\frac{n(n+1)}{2}"}]},
+    {"type":"blockMath","content":[{"type":"rawLatex","source":"\\nabla \\times \\mathbf{E} = -\\frac{\\partial \\mathbf{B}}{\\partial t}"}]},
+    {"type":"blockMath","content":[{"type":"rawLatex","source":"\\begin{pmatrix} a \\\\ c \\end{pmatrix}"}]},
+    {"type":"paragraph","content":[{"type":"text","text":"行内公式：勾股定理 "},{"type":"inlineMath","content":[{"type":"text","text":"a^2 + b^2 = c^2"}]},{"type":"text","text":"，欧拉公式 "},{"type":"inlineMath","content":[{"type":"text","text":"e^{i\\pi} + 1 = 0"}]}]},
+    {"type":"heading","attrs":{"level":2},"content":[{"type":"text","text":"代码块测试"}]},
+    {"type":"codeBlock","attrs":{"language":"javascript"},"content":[{"type":"text","text":"function hello() {\n  console.log('Hello World');\n  return 42;\n}"}]},
+    {"type":"codeBlock","attrs":{"language":"python"},"content":[{"type":"text","text":"def fibonacci(n):\n    a, b = 0, 1\n    for _ in range(n):\n        yield a\n        a, b = b, a + b"}]},
+    {"type":"codeBlock","attrs":{"language":"php"},"content":[{"type":"text","text":"<?php\nnamespace App\\Models;\n\nclass User extends Authenticatable\n{\n    protected $fillable = ['name', 'email'];\n}"}]},
+    {"type":"horizontalRule"},
+    {"type":"paragraph","content":[{"type":"text","text":"试着点击公式编辑，或编辑代码块查看高亮。"}]}
+  ]
+}</div>
+<div class="bw-editor-loading">Loading document editor...</div>
+</div>
+<script src="katex.min.js" defer></script>
+<script src="vendor/highlight.min.js" defer></script>
+<script src="vendor/markdown-it.min.js" defer></script>
+<script src="vendor/html-to-image.js" defer></script>
+<!-- Editor split into feature modules (load order matters: bw-core first, bw-bootstrap last) -->
+<script src="js/bw-core.js" defer></script>
+<script src="js/bw-document.js" defer></script>
+<script src="js/bw-render.js" defer></script>
+<script src="js/bw-editing.js" defer></script>
+<script src="js/bw-math.js" defer></script>
+<script src="js/bw-toc.js" defer></script>
+<script src="js/bw-save.js" defer></script>
+<script src="js/bw-insert.js" defer></script>
+<script src="js/bw-theme.js" defer></script>
+<script src="js/bw-ui.js" defer></script>
+<script src="js/bw-docs.js" defer></script>
+<!-- 灵犀 AI 副驾（零侵入新增模块）：核心 -> Provider -> 命令 -> UI，登记于 bw-docs.js 之后、bw-bootstrap.js 之前 -->
+<script src="js/bw-ai-core.js" defer></script>
+<script src="js/bw-ai-providers.js" defer></script>
+<script src="js/bw-ai-commands.js" defer></script>
+<script src="js/bw-ai-ui.js" defer></script>
+<!-- 灵犀 AI 副驾：选区浮动菜单与上下文捕获（ui 之后、bootstrap 之前） -->
+<script src="js/bw-ai-selection.js" defer></script>
+<script src="js/bw-export.js" defer></script>
+<!-- 桌面桥接（Tauri v2 专用）：浏览器中守卫空操作，安全无害；桌面下接管图片落盘策略 -->
+<script src="js/bw-desktop-bridge.js" defer></script>
+<!-- 心画 白板融合（独立模块，零侵入）：bw-bootstrap 之前引入 -->
+<script src="js/bw-whiteboard.js" defer></script>
+<script src="js/bw-whiteboard-ai.js" defer></script>
+<script src="js/bw-bootstrap.js" defer></script>
+</body>
+</html>
