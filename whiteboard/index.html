@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>白板</title>
+  <link rel="stylesheet" href="whiteboard.css">
+  <style>html,body{margin:0;height:100%;overflow:hidden;font-family:var(--bw-font, system-ui, -apple-system, "Segoe UI", sans-serif);}</style>
+</head>
+<body>
+  <div class="bw-wb-root">
+    <div class="bw-wb-bar">
+      <span class="bw-wb-title">白板</span>
+      <span class="bw-wb-spacer"></span>
+      <button id="wbFlowBtn" class="bw-wb-btn bw-wb-btn-ghost" title="流程图 · 插入单个元素或完整模板">流程图</button>
+      <button id="wbTableBtn" class="bw-wb-btn bw-wb-btn-ghost" title="插入表格">表格</button>
+      <span class="bw-wb-sep"></span>
+      <span class="bw-wb-align" role="group" aria-label="图片对齐">
+        <button id="wbAlignLeft" class="bw-wb-btn bw-wb-btn-ghost bw-wb-align-btn" title="左对齐" aria-label="左对齐"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h10M4 18h13"/></svg></button>
+        <button id="wbAlignCenter" class="bw-wb-btn bw-wb-btn-ghost bw-wb-align-btn active" title="居中" aria-label="居中"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M7 12h10M5 18h14"/></svg></button>
+        <button id="wbAlignRight" class="bw-wb-btn bw-wb-btn-ghost bw-wb-align-btn" title="右对齐" aria-label="右对齐"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M10 12h10M7 18h13"/></svg></button>
+      </span>
+      <span class="bw-wb-sep"></span>
+      <button id="wbExportBtn" class="bw-wb-btn" title="导出 PNG 并插入到编辑器">导出并插入</button>
+      <button id="wbBeautyBtn" class="bw-wb-btn" title="用 AI 美化后插入">AI 美化</button>
+      <button id="wbClearBtn" class="bw-wb-btn bw-wb-btn-ghost" title="清空画布">清空</button>
+    </div>
+    <form id="wbTableForm" class="bw-wb-table-form" hidden>
+      <label>行 <input id="wbTableRows" type="number" min="1" max="20" value="3"></label>
+      <label>列 <input id="wbTableCols" type="number" min="1" max="20" value="3"></label>
+      <button type="submit" class="bw-wb-btn">生成</button>
+      <button type="button" id="wbTableCancel" class="bw-wb-btn bw-wb-btn-ghost">取消</button>
+    </form>
+    <div id="bwStage" class="bw-wb-stage"></div>
+  </div>
+
+  <!-- 本地化预构建（离线优先）；缺失时 app.js 回退到 CDN -->
+  <script>window.EXCALIDRAW_ASSET_PATH = 'vendor/';</script>
+  <script src="vendor/react.production.min.js"></script>
+  <script src="vendor/react-dom.production.min.js"></script>
+  <script>window.EXCALIDRAW_ASSET_PATH = 'vendor/';</script>
+  <script src="vendor/excalidraw.production.min.js"></script>
+  <script src="shapes.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
