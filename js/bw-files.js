@@ -92,8 +92,10 @@
     if (switchBtn) switchBtn.addEventListener('click', function () { bwFilesOpenFolder(host); });
 
     var newBtn = $('#bwFilesNew', host);
+    var openFileBtn = $('#bwFilesOpenFile', host);
     var openBtn = $('#bwFilesOpenFolder', host);
     if (newBtn) newBtn.onclick = function () { bwFilesNewDoc(host); };
+    if (openFileBtn) openFileBtn.onclick = function () { bwFilesOpenSingleFile(host); };
     if (openBtn) openBtn.onclick = function () { bwFilesOpenFolder(host); };
   }
 
@@ -311,6 +313,81 @@
       if (docs.length && typeof switchDoc === 'function') switchDoc(host, docs[0].id);
     }
     bwFilesRender(host);
+  }
+
+  /* 首次使用提示：建议选择常用文件夹 */
+  function bwPromptFolderPicker(host) {
+    if (typeof window.showDirectoryPicker !== 'function') return;
+    if (_bwDirHandle) return;
+    if (localStorage.getItem('bw-folder-dismissed')) return;
+
+    var overlay = document.createElement('div');
+    overlay.className = 'bw-folder-prompt-overlay';
+    overlay.innerHTML =
+      '<div class="bw-folder-prompt">' +
+        '<div class="bw-folder-prompt-icon">📂</div>' +
+        '<div class="bw-folder-prompt-title">选择常用文件夹</div>' +
+        '<div class="bw-folder-prompt-desc">Luma 支持直接读写本地 .md 文件。选择一个文件夹后，文档将自动保存到磁盘，不怕清缓存丢失。</div>' +
+        '<div class="bw-folder-prompt-actions">' +
+          '<button class="bw-folder-prompt-btn primary" id="bwFpPick">选择文件夹</button>' +
+          '<button class="bw-folder-prompt-btn" id="bwFpLater">稍后再说</button>' +
+          '<button class="bw-folder-prompt-btn" id="bwFpNever">不再提示</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(overlay);
+
+    overlay.querySelector('#bwFpPick').addEventListener('click', function () {
+      overlay.remove();
+      if (typeof bwFilesOpenFolder === 'function') bwFilesOpenFolder(host);
+    });
+    overlay.querySelector('#bwFpLater').addEventListener('click', function () { overlay.remove(); });
+    overlay.querySelector('#bwFpNever').addEventListener('click', function () {
+      localStorage.setItem('bw-folder-dismissed', '1');
+      overlay.remove();
+    });
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay && !_bwDirHandle) overlay.remove();
+    });
+  }
+
+  async function bwFilesOpenSingleFile(host) {
+    if (typeof window.showOpenFilePicker !== 'function') {
+      // 回退：传统 input file
+      var inp = document.createElement('input');
+      inp.type = 'file';
+      inp.accept = '.md,.txt';
+      inp.onchange = function () {
+        if (!inp.files || !inp.files.length) return;
+        handleDroppedFiles(host, inp.files);
+      };
+      inp.click();
+      return;
+    }
+    try {
+      var [handle] = await window.showOpenFilePicker({
+        types: [{ description: 'Markdown', accept: { 'text/markdown': ['.md', '.txt'] } }],
+        multiple: false
+      });
+      var file = await handle.getFile();
+      var text = await file.text();
+      // 作为新文档加载到编辑器
+      var name = file.name.replace(/\.(md|txt)$/, '');
+      if (typeof loadDocIntoEditor === 'function') {
+        var st = stateMap.get(host);
+        if (st && typeof saveCurrentDoc === 'function') saveCurrentDoc(host);
+        loadDocIntoEditor(host, name, text);
+        // 存入文档库
+        var rec = { id: genDocId(), title: name, md: text };
+        var docs = (typeof docStoreLoad === 'function') ? docStoreLoad() : [];
+        docs.unshift(rec);
+        if (typeof docStoreSave === 'function') docStoreSave(docs);
+        if (typeof docStoreSetActive === 'function') docStoreSetActive(rec.id);
+        st.docId = rec.id;
+        bwFilesRender(host);
+      }
+    } catch (e) {
+      if (e.name !== 'AbortError') console.error(e);
+    }
   }
 
   /* ============================================================

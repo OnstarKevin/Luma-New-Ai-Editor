@@ -178,10 +178,15 @@
       if (b !== block) leaveEdit(b);
     });
     var md = block.dataset.md || '';
-    if (!md) md = block.textContent || '';
+    if (!md) md = block.textContent.replace(/[\u00A0]/g, ' ').trim() || '';
     // Code blocks are stored with ``` fences, but the editor should show the
     // raw source, so strip the fences before entering edit mode.
     if (block.classList.contains('code')) md = stripCodeFences(md);
+    // 防御：若 dataset.md 为空但有渲染文本，尝试从 DOM 恢复（反向提取 Markdown）
+    if (!md.trim()) {
+      var innerMd = bwReverseRenderBlock(block);
+      if (innerMd) md = innerMd;
+    }
     block.textContent = md;
     block.classList.add('editing');
     refreshSpecialLine(block); // 聚焦瞬间按当前内容刷新竖线颜色（避免沿用旧 class）
@@ -447,13 +452,16 @@
         if (rng.collapsed && isAtEnd(block, rng)) {
           e.preventDefault();
           var nb = document.createElement('div');
-          nb.className = 'bw-block p';
-          nb.dataset.md = '';
+          // 延续块类型：列表/任务/引用块按 Enter 后保持同类
+          var inheritable = ['ul', 'ol', 'task', 'blockquote'];
+          var inherited = inheritable.filter(function (c) { return block.classList.contains(c); })[0];
+          nb.className = 'bw-block ' + (inherited || 'p');
+          nb.dataset.md = inherited === 'task' ? '- [ ] ' : (inherited === 'ul' ? '- ' : (inherited === 'ol' ? '1. ' : (inherited === 'blockquote' ? '> ' : '')));
           nb.textContent = '';
           nb.setAttribute('contenteditable', 'true');
           makeEditable(nb);
           block.parentNode.insertBefore(nb, block.nextSibling);
-          nb.focus();
+          nb.focus({ preventScroll: true });
           updateTOC(block.closest('.bw-doc'), stateMap.get(nb.closest('.' + NS)));
         }
       }
@@ -744,6 +752,12 @@
       if (doc && !block) {
         var host = doc.closest('.' + NS);
         if (host && $$('.bw-block.bw-selected', host).length) clearMultiBlockSelection(host);
+        // 点击正文空白区：末尾建空块并聚焦，但不滚动页面
+        if (host && !e.target.closest('.bw-source-panel') && !e.target.closest('.bw-github-preview')) {
+          if (typeof ensureTrailingEmptyBlock === 'function') ensureTrailingEmptyBlock(doc);
+          var last = doc.querySelector('.bw-block:last-child');
+          if (last) last.focus({ preventScroll: true });
+        }
       }
     });
   })();

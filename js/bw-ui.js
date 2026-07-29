@@ -108,6 +108,22 @@
           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>' +
           '<span class="bw-tooltip">源码</span>' +
         '</button>' +
+        '<button class="bw-tool-btn bw-preview-toggle" data-action="gpreview" title="GitHub 风格只读预览（含标题锚点跳转）" aria-label="预览">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>' +
+          '<span class="bw-tooltip">预览</span>' +
+        '</button>' +
+        '<button class="bw-tool-btn bw-plugins-toggle" data-action="plugins" title="运行已注册插件（如格式检查）" aria-label="插件">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4l-2 4-4 1 3 3-1 5 4-2 4 2-1-5 3-3-4-1-2-4z"/></svg>' +
+          '<span class="bw-tooltip">插件</span>' +
+        '</button>' +
+        '<button class="bw-tool-btn" data-action="style" title="块样式调节（背景色可视化）" aria-label="样式">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18"/></svg>' +
+          '<span class="bw-tooltip">样式</span>' +
+        '</button>' +
+        '<button class="bw-tool-btn" data-action="cheatsheet" title="数学公式 &amp; Markdown 快速查询" aria-label="查询">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>' +
+          '<span class="bw-tooltip">查询</span>' +
+        '</button>' +
       '</div>' +
 
       '<div class="bw-editor-body">' +
@@ -122,6 +138,7 @@
           '<div class="bw-sb-panel bw-sb-files" id="bwFilesPanel" style="display:none">' +
             '<div class="bw-files-toolbar">' +
               '<button class="bw-files-action" id="bwFilesNew">+ 新建</button>' +
+              '<button class="bw-files-action" id="bwFilesOpenFile">📄 打开文件</button>' +
               '<button class="bw-files-action" id="bwFilesOpenFolder">📂 打开文件夹</button>' +
             '</div>' +
             '<div class="bw-files-list" id="bwFilesList"></div>' +
@@ -220,6 +237,10 @@
           case 'theme': toggleTheme(host); break;
           case 'focus': toggleFocusMode(host); break;
           case 'source': toggleSourceMode(host); break;
+          case 'gpreview': toggleGithubPreview(host); break;
+          case 'plugins': if (typeof bwPluginsToggle === 'function') bwPluginsToggle(host); break;
+          case 'style': if (typeof bwStylePanel === 'function') bwStylePanel(host); break;
+          case 'cheatsheet': if (typeof bwCheatsheetToggle === 'function') bwCheatsheetToggle(host); break;
         }
         // 工具栏操作完成后恢复编辑器焦点
         refocusEditor(host);
@@ -239,17 +260,22 @@
       fileInput.addEventListener('change', function () { handleFileUpload(host, this.files); this.value = ''; });
     }
 
-    // Drag & drop images anywhere into the editor → 统一走 handleFileUpload。
-    // 仅在拖拽内容含文件时拦截，避免影响编辑器内文本拖拽选择。
+    // Drag & drop: 图片/文件/文本/HTML 统一处理
+    // 仅在拖拽内容含文件或文本时拦截，避免影响编辑器内文本拖拽选择。
     host.addEventListener('dragover', function (e) {
       if (!e.dataTransfer || !e.dataTransfer.types) return;
       var types = e.dataTransfer.types;
-      var hasFiles = false;
+      var hasFiles = false, hasText = false;
       try {
-        if (typeof types.indexOf === 'function') hasFiles = types.indexOf('Files') !== -1;
-        else if (typeof types.contains === 'function') hasFiles = types.contains('Files'); // 旧版 DOMStringList
-      } catch (err) { hasFiles = false; }
-      if (!hasFiles) return;
+        if (typeof types.indexOf === 'function') {
+          hasFiles = types.indexOf('Files') !== -1;
+          hasText = types.indexOf('text/plain') !== -1 || types.indexOf('text/html') !== -1;
+        } else if (typeof types.contains === 'function') {
+          hasFiles = types.contains('Files');
+          hasText = types.contains('text/plain') || types.contains('text/html');
+        }
+      } catch (err) {}
+      if (!hasFiles && !hasText) return;
       e.preventDefault();
       e.dataTransfer.dropEffect = 'copy';
       host.classList.add('bw-drag-over');
@@ -259,9 +285,20 @@
     });
     host.addEventListener('drop', function (e) {
       host.classList.remove('bw-drag-over');
-      if (!e.dataTransfer || !e.dataTransfer.files || !e.dataTransfer.files.length) return;
       e.preventDefault();
-      handleFileUpload(host, e.dataTransfer.files);
+      var dt = e.dataTransfer;
+      if (!dt) return;
+      // 1. 优先处理文件
+      if (dt.files && dt.files.length) {
+        handleDroppedFiles(host, dt.files);
+        return;
+      }
+      // 2. 拖入外部文本/HTML（从浏览器其他标签页拖来的文字）
+      var html = dt.getData('text/html');
+      var plain = dt.getData('text/plain');
+      if (html || plain) {
+        bwInsertTextAtCursor(host, plain || stripHtml(html));
+      }
     });
 
     // TOC collapse
@@ -568,6 +605,124 @@
       return { title: title, body: body };
     }
     return { title: '', body: md || '' };
+  }
+
+  /* ============================================================
+   * GITHUB-STYLE READ-ONLY PREVIEW
+   * ============================================================ */
+  function toggleGithubPreview(host) {
+    var st = stateMap.get(host);
+    if (!st) return;
+    if (st.githubPreview) exitGithubPreview(host);
+    else enterGithubPreview(host);
+  }
+
+  function enterGithubPreview(host) {
+    var st = stateMap.get(host);
+    if (!st || st.githubPreview || st.sourceMode) return;
+
+    if (typeof syncEditingBlocks === 'function') syncEditingBlocks(host);
+    // 确保所有块出编辑态
+    var editingBlocks = host.querySelectorAll('.bw-block.editing');
+    editingBlocks.forEach(function (b) { if (typeof leaveEdit === 'function') leaveEdit(b); });
+
+    var md = (typeof getMarkdown === 'function') ? getMarkdown(host) : '';
+    var contentArea = $('.bw-content-area', host);
+    var tocSidebar = $('#bwTocSidebar', host);
+    if (contentArea) { contentArea._bwPrevDisplay = contentArea.style.display; contentArea.style.display = 'none'; }
+    if (tocSidebar) { tocSidebar._bwPrevDisplay = tocSidebar.style.display; tocSidebar.style.display = 'none'; }
+
+    // 渲染 GitHub 风格 HTML
+    var html = bwRenderGithubPreview(md);
+
+    var panel = document.createElement('div');
+    panel.className = 'bw-github-preview';
+    panel.innerHTML =
+      '<div class="bw-github-bar">' +
+        '<span class="bw-github-title">GitHub 预览</span>' +
+        '<button class="bw-github-close" type="button">返回编辑</button>' +
+      '</div>' +
+      '<div class="bw-github-body markdown-body">' + html + '</div>';
+    var body = $('.bw-editor-body', host);
+    if (body) body.appendChild(panel);
+    st.githubPanel = panel;
+    st.githubPreview = true;
+
+    panel.querySelector('.bw-github-close').addEventListener('click', function () { exitGithubPreview(host); });
+    panel.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') { e.preventDefault(); exitGithubPreview(host); }
+    });
+
+    // 标题锚点点击跳转
+    panel.querySelectorAll('h1[id], h2[id], h3[id], h4[id]').forEach(function (h) {
+      h.style.cursor = 'pointer';
+      h.addEventListener('click', function () {
+        var a = document.createElement('a');
+        a.href = '#' + h.id;
+        panel.querySelector('.bw-github-body').appendChild(a);
+        a.click();
+        a.remove();
+      });
+    });
+    // 外部链接新窗口打开
+    panel.querySelectorAll('a[href^="http"]').forEach(function (a) {
+      a.setAttribute('target', '_blank');
+      a.setAttribute('rel', 'noopener noreferrer');
+    });
+
+    var btn = $('.bw-preview-toggle', host);
+    if (btn) btn.classList.add('active');
+  }
+
+  function exitGithubPreview(host) {
+    var st = stateMap.get(host);
+    if (!st || !st.githubPreview) return;
+    if (st.githubPanel) st.githubPanel.remove();
+    st.githubPanel = null;
+    st.githubPreview = false;
+    var contentArea = $('.bw-content-area', host);
+    var tocSidebar = $('#bwTocSidebar', host);
+    if (contentArea) contentArea.style.display = contentArea._bwPrevDisplay || '';
+    if (tocSidebar) tocSidebar.style.display = tocSidebar._bwPrevDisplay || '';
+    var btn = $('.bw-preview-toggle', host);
+    if (btn) btn.classList.remove('active');
+  }
+
+  function bwRenderGithubPreview(md) {
+    var engine = null;
+    try {
+      // 复用已有的 markdown-it 实例（含图片包裹等），避免新建
+      if (typeof getMD === 'function') engine = getMD();
+    } catch (e) {}
+
+    if (!engine) return '<pre>' + escapeHtml(md) + '</pre>';
+
+    try {
+      var html = engine.render(md);
+      // 后处理：给 h1-h4 注入 id 用于锚点跳转
+      html = html.replace(/<(h[1-4])([^>]*)>/g, function (m, tag, attrs) {
+        // 跳过已有 id 的
+        if (/id=/.test(attrs)) return m;
+        return '<' + tag + attrs + '>';
+      });
+      // 利用 DOM 解析注入 id
+      var div = document.createElement('div');
+      div.innerHTML = html;
+      var headings = div.querySelectorAll('h1, h2, h3, h4');
+      var count = {};
+      headings.forEach(function (h) {
+        if (h.id) return;
+        var text = (h.textContent || '').toLowerCase()
+          .replace(/[^\w\u4e00-\u9fff\s-]/g, '').trim()
+          .replace(/\s+/g, '-') || 'heading';
+        if (count[text] !== undefined) { count[text]++; text = text + '-' + count[text]; }
+        else { count[text] = 0; }
+        h.id = text;
+      });
+      return div.innerHTML;
+    } catch (e) {
+      return '<pre>' + escapeHtml(md) + '</pre>';
+    }
   }
 
   function copyTextToClipboard(text, cb) {

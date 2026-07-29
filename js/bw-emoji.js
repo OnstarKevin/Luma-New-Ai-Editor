@@ -16,6 +16,9 @@
   var _emojiPanel = null;
 
   function bwEmojiToggle() {
+    // 关闭其他面板
+    var others = document.querySelectorAll('.bw-style-panel, .bw-plugins-panel, .bw-chsheet-panel, .bw-find-bar');
+    others.forEach(function (o) { o.remove(); });
     if (_emojiPanel && _emojiPanel.parentNode) { _emojiPanel.remove(); _emojiPanel = null; return; }
     _emojiPanel = document.createElement('div');
     _emojiPanel.className = 'bw-emoji-panel';

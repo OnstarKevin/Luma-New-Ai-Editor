@@ -42,8 +42,31 @@
     window._bwSavedRange = null;
   }
 
-  // 获取文本节点相对于块的偏移量
+  // 获取文本节点相对于块的偏移量（处理 container 是元素的情况）
   function getTextOffset(block, node, offset) {
+    // 简化：如果 node 是块本身或非文本节点，offset 是子节点索引
+    if (node === block) {
+      var pos2 = 0;
+      for (var i = 0; i < offset && i < block.childNodes.length; i++) {
+        pos2 += (block.childNodes[i].textContent || '').length;
+      }
+      return pos2;
+    }
+    if (node.nodeType === 1) {
+      // 元素节点：累加其前面所有节点（包括自身）的文本长度，再按 offset 算子节点
+      var walker2 = document.createTreeWalker(block, NodeFilter.SHOW_ELEMENT, null);
+      var posEl = 0;
+      var foundEl = false;
+      var n2;
+      while ((n2 = walker2.nextNode())) {
+        if (n2 === node) { foundEl = true; break; }
+        posEl += (n2.textContent || '').length;
+      }
+      if (foundEl && node.childNodes[offset]) {
+        return posEl + getTextOffset(node, node.childNodes[offset], 0);
+      }
+      return posEl;
+    }
     var pos = 0;
     var walker = document.createTreeWalker(block, NodeFilter.SHOW_TEXT, null);
     var n;

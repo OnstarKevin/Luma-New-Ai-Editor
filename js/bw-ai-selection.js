@@ -69,6 +69,12 @@ function bwAiBuildSelectionMenu(host, selMenu) {
   });
   var docEl = $('#bwDoc', host);
   if (docEl) docEl.addEventListener('mouseup', function () { bwAiUpdateSelMenu(host); });
+    docEl.addEventListener('click', function (e) {
+      // 点击 .bw-doc 空白区域（非任何块）时强制更新 AI 菜单
+      if (!e.target.closest('.bw-block') && !e.target.closest('.bw-ai-selmenu')) {
+        setTimeout(function () { bwAiUpdateSelMenu(host); }, 0);
+      }
+    });
   host.addEventListener('scroll', function () { selMenu.style.display = 'none'; }, true);
   document.addEventListener('mousedown', function (e) { if (selMenu.style.display !== 'none' && !selMenu.contains(e.target)) selMenu.style.display = 'none'; });
 }

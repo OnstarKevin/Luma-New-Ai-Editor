@@ -355,3 +355,66 @@
     return katexToHtml(tex, false);
   }
 
+  // 反向渲染：从 DOM 还原 Markdown（防御性恢复，当 dataset.md 丢失时使用）
+  function bwReverseRenderBlock(block) {
+    if (!block || !block.classList) return '';
+    var cls = block.className;
+    var text = block.textContent.replace(/\u00A0/g, ' ').trim();
+    if (!text) return '';
+    // heading
+    if (cls.indexOf('h1') !== -1) return '# ' + text;
+    if (cls.indexOf('h2') !== -1) return '## ' + text;
+    if (cls.indexOf('h3') !== -1) return '### ' + text;
+    if (cls.indexOf('h4') !== -1) return '#### ' + text;
+    // blockquote: text might be wrapped in .bw-quote-text
+    if (cls.indexOf('blockquote') !== -1) return '> ' + text;
+    // task
+    if (cls.indexOf('task') !== -1) {
+      var checked = cls.indexOf('checked') !== -1;
+      return '- [' + (checked ? 'x' : ' ') + '] ' + text;
+    }
+    // list
+    if (cls.indexOf('ul') !== -1) {
+      var lines = text.split('\n').map(function (l) { return '- ' + l.trim(); });
+      return lines.join('\n');
+    }
+    if (cls.indexOf('ol') !== -1) return text; // 有序列表尽量保留
+    // code (from inner <pre><code>)
+    if (cls.indexOf('code') !== -1) {
+      var codeEl = block.querySelector('code');
+      if (codeEl) {
+        var lang = (block.dataset && block.dataset.lang) || '';
+        return '```' + lang + '\n' + codeEl.textContent + '\n```';
+      }
+    }
+    // table: reconstruct from <table>
+    if (cls.indexOf('table') !== -1) {
+      var rows = [];
+      var tableEl = block.querySelector('table');
+      if (tableEl) {
+        tableEl.querySelectorAll('tr').forEach(function (tr) {
+          var cells = [];
+          tr.querySelectorAll('th, td').forEach(function (td) { cells.push(td.textContent.trim()); });
+          rows.push('| ' + cells.join(' | ') + ' |');
+        });
+        if (rows.length > 1) {
+          // insert separator after header
+          var sep = '|' + rows[0].split('|').slice(1, -1).map(function () { return ' --- '; }).join('|') + '|';
+          rows.splice(1, 0, sep);
+        }
+        return rows.join('\n');
+      }
+    }
+    // hr
+    if (cls.indexOf('hr') !== -1) return '---';
+    // mermaid
+    var mermaidSrc = block.querySelector('.bw-mermaid-src');
+    if (mermaidSrc) return '```mermaid\n' + mermaidSrc.textContent + '\n```';
+    // math card
+    if (block.classList.contains('bw-math-card') && block.dataset && block.dataset.tex) {
+      return '$$\n' + block.dataset.tex + '\n$$';
+    }
+    // plain paragraph
+    return text;
+  }
+

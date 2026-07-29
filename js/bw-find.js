@@ -10,8 +10,9 @@
 
   function bwFindEnsureBar(host) {
     if (_findBar && _findBar.parentNode) return _findBar;
-    var contentArea = host.querySelector('.bw-content-area');
-    if (!contentArea) return null;
+    // 插入到正文容器顶部，sticky top（避开左侧 padding）
+    var contentInner = host.querySelector('.bw-content-inner') || host.querySelector('.bw-content-area');
+    if (!contentInner) return null;
     _findBar = document.createElement('div');
     _findBar.className = 'bw-find-bar';
     _findBar.innerHTML =
@@ -23,7 +24,7 @@
       '<button class="bw-find-replace-btn" title="替换" style="display:none">替换</button>' +
       '<button class="bw-find-replace-all-btn" title="全部替换" style="display:none">全部替换</button>' +
       '<button class="bw-find-close" title="关闭">✕</button>';
-    contentArea.insertBefore(_findBar, contentArea.firstChild);
+    contentInner.insertBefore(_findBar, contentInner.firstChild);
 
     var input = _findBar.querySelector('.bw-find-input');
     var count = _findBar.querySelector('.bw-find-count');

@@ -17,6 +17,8 @@
   }
 
   function appendNode(node, lines) {
+    // 块之间插入空行，防止解析器将所有内容合并为一个段落
+    if (lines.length && lines[lines.length - 1] !== '') lines.push('');
     switch (node.type) {
       case 'doc':
         (node.content || []).forEach(function (c) { appendNode(c, lines); });
@@ -142,6 +144,12 @@
     var i = 0;
     while (i < rawLines.length) {
       var line = rawLines[i];
+      // Escaped $$: \$\$ → 转义为普通段落，不触发数学渲染（用于展示语法本身）
+      if (/^\\\$\$/.test(line)) {
+        blocks.push({ type: 'para', text: line.replace(/^\\/, '') });
+        i++;
+        continue;
+      }
       // Single-line display math:  $$ ... $$  (e.g. pasted from elsewhere on one line)
       var singleMath = line.match(/^\s*\$\$([\s\S]+?)\$\$\s*$/);
       if (singleMath) {

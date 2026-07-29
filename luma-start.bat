@@ -11,11 +11,15 @@ echo          Luma 网页版 - 一键启动
 echo ==================================================
 echo.
 
+:: 清理旧进程，避免端口占用
+for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":6789" ^| findstr "LISTENING"') do taskkill /F /PID %%a >nul 2>nul
+
 :: 优先用 Node（server.js 自带，零依赖）
 where node >nul 2>nul
 if %errorlevel%==0 (
     echo [1/2] 检测到 Node.js，使用内置服务器启动...
     echo.
+    start "" http://localhost:6789/
     node server.js
     goto :end
 )

@@ -154,14 +154,14 @@
     if (st._localSaveTimer) clearTimeout(st._localSaveTimer);
     _bwLocalDirty = true;
     updateLocalSaveStatus(host, 'pending');
-    st._localSaveTimer = setTimeout(function () { bwLocalSave(host); }, 1200);
+    st._localSaveTimer = setTimeout(function () { bwLocalSave(host); }, 60000);
   }
 
   // 状态指示器（DOM 已存在则复用，否则无副作用）
   function updateLocalSaveStatus(host, status, ts) {
     var ind = $('.bw-save-indicator', host);
     if (!ind) return;
-    var labels = { saved: '已自动保存', saving: '保存中...', pending: '编辑中...', error: '保存失败' };
+    var labels = { saved: '已保存', saving: '保存中...', pending: '待保存', error: '保存失败' };
     ind.className = 'bw-save-indicator ' + status;
     var label = labels[status] || status;
     if (status === 'saved' && ts) {

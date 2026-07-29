@@ -57,6 +57,10 @@
     if (typeof bwSetupBeforeUnload === 'function') bwSetupBeforeUnload();
     if (typeof bwBindTitleAutosave === 'function') bwBindTitleAutosave();
     if (typeof bwFilesRestoreHandle === 'function') bwFilesRestoreHandle(host);
+    // 首次使用提示：建议选择一个常用文件夹
+    if (typeof bwPromptFolderPicker === 'function') {
+      setTimeout(function () { bwPromptFolderPicker(host); }, 800);
+    }
   }
 
 

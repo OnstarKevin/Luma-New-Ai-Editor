@@ -160,3 +160,95 @@
     if (pop) pop.remove();
   });
 
+  /* ────── 拖放文本/文件辅助 ────── */
+  function stripHtml(html) {
+    var el = document.createElement('div');
+    el.innerHTML = html;
+    return el.textContent || '';
+  }
+
+  function bwInsertTextAtCursor(host, text) {
+    if (!text) return;
+    var block = document.querySelector('.bw-block.editing');
+    if (!block) {
+      // 没有编辑中的块：在开头创建一个
+      var docEl = host ? host.querySelector('.bw-doc') : document.querySelector('.bw-doc');
+      if (docEl && typeof ensureTrailingEmptyBlock === 'function') {
+        ensureTrailingEmptyBlock(docEl);
+        block = document.querySelector('.bw-block.editing');
+      }
+    }
+    if (!block) return;
+    // 用文本层的 surroundSelection 或直接插入到光标位置
+    if (typeof getActiveEditBlock === 'function') {
+      var b = getActiveEditBlock();
+      if (b) block = b;
+    }
+    block.focus();
+    // 插入到光标处
+    var sel = window.getSelection();
+    if (sel && sel.rangeCount) {
+      var rng = sel.getRangeAt(0);
+      rng.deleteContents();
+      rng.insertNode(document.createTextNode(text));
+      rng.collapse(false);
+      sel.removeAllRanges();
+      sel.addRange(rng);
+    } else {
+      block.textContent += text;
+    }
+    block.dispatchEvent(new Event('input', { bubbles: true }));
+    if (typeof markDirty === 'function') markDirty(block);
+  }
+
+  // 统一文件拖放：图片→原逻辑；md 文件→打开为新文档
+  function handleDroppedFiles(host, files) {
+    var images = [];
+    var texts = [];
+    Array.from(files).forEach(function (f) {
+      if (f.type && f.type.indexOf('image/') === 0) images.push(f);
+      else if (f.name && /\.(md|txt|html|json|css|js|py|xml|yaml|yml|csv|log)$/i.test(f.name)) {
+        // .md 文件单独处理
+        if (/\.md$/i.test(f.name)) { texts.push({ file: f, asNewDoc: true }); }
+        else texts.push({ file: f, asNewDoc: false });
+      }
+    });
+    // .md 文件：打开为新文档
+    texts.filter(function (t) { return t.asNewDoc; }).forEach(function (t) {
+      var reader = new FileReader();
+      reader.onload = function (ev) {
+        var content = ev.target.result;
+        var title = t.file.name.replace(/\.md$/, '');
+        if (typeof loadDocIntoEditor === 'function') {
+          var st = stateMap.get(host);
+          if (st && typeof saveCurrentDoc === 'function') saveCurrentDoc(host);
+          loadDocIntoEditor(host, title, content);
+          var rec = { id: genDocId(), title: title, md: content };
+          var docs = (typeof docStoreLoad === 'function') ? docStoreLoad() : [];
+          docs.unshift(rec);
+          if (typeof docStoreSave === 'function') docStoreSave(docs);
+          if (typeof docStoreSetActive === 'function') docStoreSetActive(rec.id);
+          if (st) st.docId = rec.id;
+          if (typeof bwFilesRender === 'function') bwFilesRender(host);
+        }
+      };
+      reader.readAsText(t.file);
+    });
+    // 普通文本文件：插入到当前光标
+    texts.filter(function (t) { return !t.asNewDoc; }).forEach(function (t) {
+      var reader = new FileReader();
+      reader.onload = function (ev) {
+        var content = ev.target.result;
+        bwInsertTextAtCursor(host, '\n\n<!-- ' + t.file.name + ' -->\n' + content + '\n');
+      };
+      reader.readAsText(t.file);
+    });
+    // 图片文件：走原逻辑
+    if (images.length && typeof handleFileUpload === 'function') {
+      handleFileUpload(host, images);
+    }
+    if (!images.length && !texts.length && typeof bwToast === 'function') {
+      bwToast(host, '不支持的格式，仅接受图片和文本文件', { type: 'warn' });
+    }
+  }
+

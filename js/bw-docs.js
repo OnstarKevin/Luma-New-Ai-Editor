@@ -36,15 +36,28 @@
 
   /** Body markdown only (title excluded) — used to store/switch documents */
   function getBodyMarkdown(host) {
-    var full = canonicalToMarkdown(getCanonicalJson(host));
-    var titleEl = $('#bwTitleInput', host);
-    var title = titleEl ? (titleEl.value || '').trim() : '';
-    var lines = full.split('\n');
-    if (title && lines[0] && lines[0].replace(/^#\s+/, '').trim() === title) {
-      lines = lines.slice(1);
-      while (lines[0] === '') lines.shift();
-    }
-    return lines.join('\n');
+    // 直接从块 DOM 收集 Markdown，绕过 JSON 序列化
+    var blocks = $$('.bw-block', host);
+    var out = [], emptyRun = 0;
+    blocks.forEach(function (b) {
+      // 先同步正在编辑的块：把当前 textContent 写回 dataset.md
+      if (b.classList.contains('editing') && typeof syncEditingBlocks === 'function') {
+        // syncEditingBlocks 是批量操作，这里只同步当前块
+        var md = b.textContent || '';
+        // 代码块保留 fences
+        if (b.classList.contains('code')) {
+          var lang = b.dataset.lang || '';
+          md = '```' + lang + '\n' + md + '\n```';
+        }
+        b.dataset.md = md;
+      }
+      var md = (b.dataset.md || '').trim();
+      if (!md) { emptyRun++; return; }
+      // 只在有空白行后把空行合并为单个 \n\n
+      if (emptyRun > 0) { out.push(''); emptyRun = 0; }
+      out.push(md);
+    });
+    return out.join('\n\n');
   }
 
   /** Load a document (title + body markdown) into the editor UI */
@@ -59,6 +72,11 @@
     }
     var docEl = $('#bwDoc', host);
     if (docEl) buildDoc(bodyMd || '', docEl, st);
+    // Typora 风格：自动聚焦第一个块，但不触发页面滚动
+    if (docEl) {
+      var firstBlock = docEl.querySelector('.bw-block');
+      if (firstBlock) { if (typeof ensureTrailingEmptyBlock === 'function') ensureTrailingEmptyBlock(docEl); firstBlock.focus({ preventScroll: true }); }
+    }
     updateWordCount(host);
     waitKatex(function () {
       $$('.bw-math-card', host).forEach(function (card) {
@@ -167,6 +185,8 @@
   function saveCurrentDoc(host) {
     var st = stateMap.get(host);
     if (!st || !st.docId) return;
+    // 先同步编辑中的块到 dataset.md
+    if (typeof syncEditingBlocks === 'function') syncEditingBlocks(host);
     var titleEl = $('#bwTitleInput', host);
     var title = titleEl ? (titleEl.value || '').trim() : (st.title || '未命名文档');
     var rec = { id: st.docId, title: title || '未命名文档', md: getBodyMarkdown(host) };
@@ -181,15 +201,16 @@
     if (typeof bwFilesSaveToDisk === 'function') bwFilesSaveToDisk(host);
   }
 
-  // 自动保存到本地文档库（编辑时 debounce）
+  // 自动保存到本地文档库（每分钟）
   function scheduleDocAutosave(host) {
     var st = stateMap.get(host);
     if (!st) return;
     if (st._docSaveTimer) clearTimeout(st._docSaveTimer);
+    if (typeof updateLocalSaveStatus === 'function') updateLocalSaveStatus(host, 'pending');
     st._docSaveTimer = setTimeout(function () {
       saveCurrentDoc(host);
       if (typeof updateLocalSaveStatus === 'function') updateLocalSaveStatus(host, 'saved');
-    }, 1200);
+    }, 60000);
   }
 
   // 标题输入时立即保存（不必 debounce）

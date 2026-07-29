@@ -365,10 +365,11 @@ body:has([data-bw-doc-editor]) .admin-alerts {
  * ============================================================ */
 .bw-toolbar {
   display: flex;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 1px;
   height: var(--bw-toolbar-h);
-  padding: 0 12px;
+  padding: 0 8px;
   background: var(--bw-surface);
   border-bottom: 1px solid var(--bw-border-light);
   flex-shrink: 0;
@@ -642,6 +643,344 @@ body:has([data-bw-doc-editor]) .admin-alerts {
 .bw-files-folder-btn button { width: 100%; padding: 6px; font-size: 12px; border: 1px solid var(--bw-border); border-radius: 4px; background: transparent; color: var(--bw-text-secondary); cursor: pointer; }
 .bw-files-folder-btn button:hover { background: var(--bw-surface-hover); }
 
+/* ============================================================
+   GITHUB-STYLE PREVIEW
+   ============================================================ */
+.bw-github-preview {
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  background: var(--bw-bg);
+  display: flex;
+  flex-direction: column;
+}
+.bw-github-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 18px;
+  border-bottom: 1px solid var(--bw-border);
+  background: var(--bw-surface);
+  flex-shrink: 0;
+}
+.bw-github-title { font-size: 14px; font-weight: 600; color: var(--bw-text); }
+.bw-github-close {
+  padding: 4px 14px;
+  font-size: 12.5px;
+  border: 1px solid var(--bw-border);
+  border-radius: 5px;
+  background: transparent;
+  color: var(--bw-text-secondary);
+  cursor: pointer;
+}
+.bw-github-close:hover { background: var(--bw-surface-hover); }
+.bw-github-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 32px 48px;
+  max-width: 900px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--bw-text);
+}
+/* GitHub-flavored markdown body */
+.bw-github-body h1 { font-size: 2em; border-bottom: 1px solid var(--bw-border); padding-bottom: 0.3em; margin: 24px 0 16px; }
+.bw-github-body h2 { font-size: 1.5em; border-bottom: 1px solid var(--bw-border); padding-bottom: 0.3em; margin: 24px 0 16px; }
+.bw-github-body h3 { font-size: 1.25em; margin: 24px 0 16px; }
+.bw-github-body h4 { font-size: 1em; margin: 24px 0 16px; }
+.bw-github-body h1:hover::after,
+.bw-github-body h2:hover::after,
+.bw-github-body h3:hover::after {
+  content: ' 🔗';
+  font-size: 0.7em;
+  opacity: 0.3;
+}
+.bw-github-body p { margin: 0 0 16px; }
+.bw-github-body a { color: var(--bw-accent); text-decoration: none; }
+.bw-github-body a:hover { text-decoration: underline; }
+.bw-github-body code {
+  background: var(--bw-surface);
+  padding: 0.2em 0.4em;
+  border-radius: 4px;
+  font-size: 0.9em;
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+}
+.bw-github-body pre {
+  background: var(--bw-surface);
+  padding: 16px;
+  border-radius: 6px;
+  overflow-x: auto;
+  font-size: 0.85em;
+  line-height: 1.45;
+}
+.bw-github-body pre code { background: none; padding: 0; }
+.bw-github-body table { border-collapse: collapse; width: 100%; margin: 16px 0; }
+.bw-github-body th, .bw-github-body td { border: 1px solid var(--bw-border); padding: 8px 12px; text-align: left; }
+.bw-github-body th { background: var(--bw-surface); font-weight: 600; }
+.bw-github-body tr:nth-child(even) { background: rgba(128,128,128,0.03); }
+.bw-github-body blockquote {
+  border-left: 4px solid var(--bw-accent);
+  padding: 0 16px;
+  margin: 16px 0;
+  color: var(--bw-text-secondary);
+}
+.bw-github-body ul, .bw-github-body ol { padding-left: 2em; margin: 0 0 16px; }
+.bw-github-body li { margin-bottom: 4px; }
+.bw-github-body hr { border: none; border-top: 2px solid var(--bw-border); margin: 24px 0; }
+.bw-github-body img { max-width: 100%; border-radius: 6px; }
+.bw-github-body input[type="checkbox"] { margin-right: 6px; pointer-events: none; }
+
+/* ============================================================
+   PLUGINS PANEL
+   ============================================================ */
+.bw-plugins-panel {
+  position: absolute;
+  top: 60px;
+  right: 12px;
+  z-index: 200;
+  width: 360px;
+  max-height: 70vh;
+  background: var(--bw-surface);
+  border: 1px solid var(--bw-border);
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.bw-plugins-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--bw-border);
+  font-size: 13px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.bw-plugins-close {
+  border: none;
+  background: transparent;
+  font-size: 18px;
+  color: var(--bw-text-tertiary);
+  cursor: pointer;
+  padding: 0 6px;
+}
+.bw-plugins-close:hover { color: var(--bw-text); }
+.bw-plugins-list { overflow-y: auto; padding: 6px; max-height: 220px; }
+.bw-plugins-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 5px;
+  gap: 8px;
+  text-align: left;
+  margin-bottom: 2px;
+}
+.bw-plugins-item:hover { background: var(--bw-surface-hover); }
+.bw-plugins-icon { font-size: 20px; flex-shrink: 0; }
+.bw-plugins-meta { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.bw-plugins-name { font-size: 13px; color: var(--bw-text); }
+.bw-plugins-desc { font-size: 11.5px; color: var(--bw-text-tertiary); }
+.bw-plugins-go { font-size: 11px; color: var(--bw-accent); padding: 3px 8px; border: 1px solid var(--bw-accent); border-radius: 4px; }
+.bw-plugins-out { padding: 10px 14px; border-top: 1px solid var(--bw-border); overflow-y: auto; flex: 1; }
+.bw-plugins-running { color: var(--bw-text-tertiary); font-size: 12px; }
+.bw-plugins-result-head { font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+.bw-plugins-summary { font-size: 12px; color: var(--bw-text-secondary); margin-bottom: 10px; padding: 6px 10px; background: var(--bw-bg); border-radius: 4px; }
+.bw-plugins-noissues { color: #2e7d32; font-size: 13px; padding: 8px 0; }
+.bw-plugins-issues { display: flex; flex-direction: column; gap: 8px; }
+.bw-plugins-issue {
+  padding: 8px 10px;
+  border-left: 3px solid var(--bw-warning);
+  background: var(--bw-bg);
+  border-radius: 0 4px 4px 0;
+  font-size: 12px;
+}
+.bw-plugins-issue.sev-error { border-left-color: var(--bw-danger); }
+.bw-plugins-issue.sev-info { border-left-color: var(--bw-accent); }
+.bw-plugins-issue-title { color: var(--bw-text); font-weight: 500; margin-bottom: 3px; }
+.bw-plugins-issue-hint { color: var(--bw-text-tertiary); font-size: 11.5px; margin-bottom: 4px; }
+.bw-plugins-issue-loc { color: var(--bw-text-tertiary); font-size: 11px; }
+.bw-plugins-issue-snippet { font-family: monospace; font-size: 11px; background: var(--bw-surface); padding: 4px 6px; border-radius: 3px; margin-top: 4px; overflow-x: auto; }
+
+/* ============================================================
+   STYLE PANEL
+   ============================================================ */
+.bw-style-panel {
+  position: absolute;
+  top: 60px;
+  right: 12px;
+  z-index: 200;
+  width: 320px;
+  background: var(--bw-surface);
+  border: 1px solid var(--bw-border);
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  max-height: 80vh;
+}
+.bw-style-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--bw-border);
+  font-size: 13px;
+  font-weight: 600;
+}
+.bw-style-close { border: none; background: transparent; font-size: 18px; color: var(--bw-text-tertiary); cursor: pointer; padding: 0 6px; }
+.bw-style-close:hover { color: var(--bw-text); }
+.bw-style-body { padding: 10px; overflow-y: auto; }
+.bw-style-row { display: flex; align-items: center; padding: 6px 0; gap: 8px; }
+.bw-style-label { font-size: 12px; color: var(--bw-text-secondary); width: 90px; flex-shrink: 0; }
+.bw-style-swatches { display: flex; gap: 3px; flex-wrap: wrap; flex: 1; }
+.bw-style-swatch {
+  width: 18px; height: 18px;
+  border: 1px solid var(--bw-border);
+  border-radius: 4px;
+  cursor: pointer;
+  padding: 0;
+  background-clip: padding-box;
+}
+.bw-style-swatch.selected { outline: 2px solid var(--bw-accent); outline-offset: 1px; }
+.bw-style-color { width: 24px; height: 24px; border: 1px solid var(--bw-border); border-radius: 4px; padding: 0; cursor: pointer; background: transparent; }
+.bw-style-foot { display: flex; justify-content: flex-end; gap: 6px; padding: 8px 12px; border-top: 1px solid var(--bw-border); }
+.bw-style-foot button {
+  padding: 4px 12px;
+  font-size: 12px;
+  border: 1px solid var(--bw-border);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--bw-text-secondary);
+  cursor: pointer;
+}
+.bw-style-foot button:hover { background: var(--bw-surface-hover); }
+.bw-style-save { background: var(--bw-accent) !important; color: #fff !important; border-color: transparent !important; }
+.bw-style-tip { position: absolute; right: 12px; top: 8px; background: var(--bw-success, #2e7d32); color: #fff; font-size: 11.5px; padding: 4px 8px; border-radius: 4px; }
+
+/* ============================================================
+   CHEATSHEET (快速查询)
+   ============================================================ */
+.bw-chsheet-panel {
+  position: absolute;
+  top: 60px;
+  right: 12px;
+  z-index: 200;
+  width: 420px;
+  max-height: 80vh;
+  background: var(--bw-surface);
+  border: 1px solid var(--bw-border);
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.bw-chsheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--bw-border);
+  font-size: 13px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.bw-chsheet-close { border: none; background: transparent; font-size: 18px; color: var(--bw-text-tertiary); cursor: pointer; padding: 0 6px; }
+.bw-chsheet-close:hover { color: var(--bw-text); }
+.bw-chsheet-tabs { display: flex; border-bottom: 1px solid var(--bw-border); flex-shrink: 0; }
+.bw-chsheet-tab {
+  flex: 1;
+  padding: 7px 0;
+  font-size: 12px;
+  border: none;
+  background: transparent;
+  color: var(--bw-text-tertiary);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  text-align: center;
+  font-weight: 500;
+}
+.bw-chsheet-tab:hover { color: var(--bw-text); }
+.bw-chsheet-tab.active { color: var(--bw-accent); border-bottom-color: var(--bw-accent); }
+.bw-chsheet-search {
+  margin: 8px 12px;
+  padding: 5px 10px;
+  font-size: 12.5px;
+  border: 1px solid var(--bw-border);
+  border-radius: 6px;
+  background: var(--bw-bg);
+  color: var(--bw-text);
+  outline: none;
+  flex-shrink: 0;
+}
+.bw-chsheet-search:focus { border-color: var(--bw-accent); }
+.bw-chsheet-body { flex: 1; overflow-y: auto; padding: 6px 10px; }
+.bw-chsheet-cat { margin-bottom: 10px; }
+.bw-chsheet-cat-title { font-size: 11.5px; color: var(--bw-text-tertiary); font-weight: 600; padding: 4px 4px 6px; border-bottom: 1px solid var(--bw-border); margin-bottom: 6px; }
+.bw-chsheet-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 3px; }
+.bw-chsheet-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 8px;
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.1s;
+}
+.bw-chsheet-item:hover { background: var(--bw-surface-hover); }
+.bw-chsheet-item code {
+  font-size: 11px;
+  font-family: 'SF Mono', 'Consolas', monospace;
+  color: var(--bw-accent);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 60%;
+}
+.bw-chsheet-item small {
+  font-size: 11px;
+  color: var(--bw-text-secondary);
+  white-space: nowrap;
+}
+.bw-chsheet-empty { padding: 20px; text-align: center; color: var(--bw-text-tertiary); font-size: 13px; }
+.bw-chsheet-tip { padding: 6px 12px; font-size: 11px; color: var(--bw-text-tertiary); border-top: 1px solid var(--bw-border); text-align: center; flex-shrink: 0; }
+
+/* 文件夹选择提示弹窗 */
+.bw-folder-prompt-overlay {
+  position: fixed; inset: 0; z-index: 9999;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,0.4);
+}
+.bw-folder-prompt {
+  background: var(--bw-surface); border-radius: 12px; padding: 32px 36px;
+  max-width: 400px; width: 90%; text-align: center;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.2);
+}
+.bw-folder-prompt-icon { font-size: 42px; margin-bottom: 12px; }
+.bw-folder-prompt-title { font-size: 17px; font-weight: 600; color: var(--bw-text); margin-bottom: 8px; }
+.bw-folder-prompt-desc { font-size: 13px; color: var(--bw-text-secondary); line-height: 1.6; margin-bottom: 20px; }
+.bw-folder-prompt-actions { display: flex; flex-direction: column; gap: 8px; }
+.bw-folder-prompt-btn {
+  padding: 10px 0; font-size: 13px; border: 1px solid var(--bw-border); border-radius: 8px;
+  background: transparent; color: var(--bw-text-secondary); cursor: pointer;
+}
+.bw-folder-prompt-btn:hover { background: var(--bw-surface-hover); }
+.bw-folder-prompt-btn.primary { background: var(--bw-accent); color: #fff; border-color: transparent; font-weight: 500; }
+.bw-folder-prompt-btn.primary:hover { opacity: 0.9; }
+
 /* TOC reveal toggle (when collapsed) */
 .bw-toc-reveal {
   position: absolute;
@@ -759,23 +1098,25 @@ body:has([data-bw-doc-editor]) .admin-alerts {
 .bw-block::after { content: ""; display: table; clear: both; }
 
 .bw-block.editing {
-  /* Typora-style: no box, no background, no border — just a subtle left line
-     and the blinking cursor is the only visual indicator */
+  /* Typora-style: no box, no background override — inherit block-type bg */
   border-left: 2px solid var(--bw-accent);
   padding-left: 8px;
   margin-left: -10px;
   transition: border-color 0.15s ease;
-  /* 让编辑态下粘贴/输入的换行也真实可见（与渲染态 <br> 一致） */
   white-space: pre-wrap;
   word-break: break-word;
+  background: inherit;
 }
-/* Green indicator when markdown/math syntax is detected in the block */
-.bw-block.editing.has-markdown { border-left-color: var(--bw-success); }
-.bw-block.editing.has-math { border-left-color: var(--bw-success); }
-/* Caret/cursor: green when markdown/math is detected */
+/* 编辑态下保持块类型视觉一致性 */
+.bw-block.editing.blockquote { border-left: 3px solid var(--bw-accent); background: rgba(128,128,128,0.04); padding: 8px 16px; }
+.bw-block.editing.code { background: var(--bw-surface); }
+/* Markdown 检测指示：去掉了刺眼的绿色，改用中性边框微调 */
+.bw-block.editing.has-markdown { border-left-color: var(--bw-border); }
+.bw-block.editing.has-math { border-left-color: var(--bw-accent); }
+/* Caret */
 .bw-block.editing.has-markdown:focus,
 .bw-block.editing.has-math:focus {
-  caret-color: var(--bw-success);
+  caret-color: var(--bw-accent);
 }
 /* Caret/cursor: make it thick and visible, not thin */
 .bw-block.editing:focus,
@@ -807,17 +1148,16 @@ body:has([data-bw-doc-editor]) .admin-alerts {
 .bw-block.h3 { font-size: 18px; font-weight: 600; line-height: 1.45; margin-top: 22px; margin-bottom: 8px; color: var(--bw-text); }
 .bw-block.h4 { font-size: 16px; font-weight: 600; line-height: 1.5; margin-top: 18px; margin-bottom: 6px; color: var(--bw-text); }
 
-/* Quote */
+/* Quote — 中性灰调，左竖线和背景都走主题色而非绿色 */
 .bw-block.blockquote {
   margin: 10px 0;
   padding: 8px 16px;
-  border-left: 3px solid var(--bw-success);
-  background: rgba(34,197,94,0.04);
+  border-left: 3px solid var(--bw-accent);
+  background: var(--bw-bq-bg, rgba(128,128,128,0.04));
   color: var(--bw-text-secondary);
   border-radius: 0 var(--bw-radius-sm) var(--bw-radius-sm) 0;
-  font-style: italic;
 }
-[data-bw-theme="dark"] .bw-block.blockquote { background: rgba(63,185,80,0.06); }
+[data-bw-theme="dark"] .bw-block.blockquote { background: var(--bw-bq-bg, rgba(128,128,128,0.08)); }
 
 /* Unordered list */
 .bw-block.ul { padding-left: 24px; margin: 6px 0; }
@@ -1309,10 +1649,22 @@ body:has([data-bw-doc-editor]) .admin-alerts {
   font-family: var(--bw-font-mono);
   font-size: 0.88em;
   background: var(--bw-code-bg);
-  padding: 2px 5px;
-  border-radius: 3px;
-  color: var(--bw-danger);
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--bw-border);
+  color: var(--bw-text);
   word-break: break-word;
+}
+/* markdown-it 渲染的行内 code */
+.bw-block code:not(pre code) {
+  font-family: var(--bw-font-mono);
+  font-size: 0.88em;
+  background: var(--bw-code-bg);
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--bw-border);
+  color: var(--bw-text);
+}
 }
 .bw-link {
   color: var(--bw-accent);
@@ -1592,6 +1944,7 @@ body:has([data-bw-doc-editor]) .admin-alerts {
 }
 .bw-save-indicator.saved    { color: var(--bw-success); }
 .bw-save-indicator.saving    { color: var(--bw-warning); }
+.bw-save-indicator.pending   { color: #c69025; }
 .bw-save-indicator.error     { color: var(--bw-danger); }
 .bw-save-indicator.conflict  { color: var(--bw-danger); background: color-mix(in srgb, var(--bw-danger) 8%, transparent); }
 

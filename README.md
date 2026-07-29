@@ -1,142 +1,131 @@
-# Luma 网页版 · 纯静态 Markdown 编辑器
+# INSTALL
 
-> **Luma** — a beautiful, zero-build, pure-frontend Markdown editor.
-> 实时渲染 · 数学公式 · 代码高亮 · 无限白板 · 可选 AI 助手 / Live preview · KaTeX math · code highlight · infinite whiteboard · optional AI copilot.
-
-**关键词 / Keywords:** Markdown 编辑器, 静态站点, 离线, 纯前端, KaTeX, 代码高亮, 白板, Excalidraw, 文档工具, 写作, 开源, Markdown editor, static site, offline, no-build, note-taking, documentation tool
-
-**语言 / Language:** [中文](#中文) · [English](#english)
-
+# Luma 网页版 · 安装与部署指南
+适用场景两种：**① 本地电脑自用**（Windows / macOS / Linux）；**② 云服务器公网部署**（让任何人都能访问）。
+本站点为纯静态文件，不需要数据库、不需要编译。
 ---
+## 一、本地电脑安装（自用 / 局域网共享）
+### 方式 A：一键脚本（推荐，适合非技术用户）
+1. 把整个 `luma-web` 文件夹拷到电脑任意位置（比如 `桌面\luma-web`）。
+1. 确认电脑装了 **Node.js** 或 **Python** 其一（二选一）：
+   - Node.js：https://nodejs.org/  （下载 LTS 版，一路下一步即可）
+   - Python：https://www.python.org/ （安装时**务必勾选 "Add python.exe to PATH"**）
+1. 启动：
+   - **Windows**：双击 `luma-start.bat`
+   - **macOS / Linux**：终端里 `./start.sh`（首次需 `chmod +x start.sh`）
+1. 脚本会自动开浏览器到 `http://localhost:6789/`。关掉黑色窗口即停止。
+> 一键脚本会自动探测 Node → Python，谁有就用谁；都没有才弹窗提示安装。
+### 方式 B：手动启动（开发者）
+```bash
+# 进入文件夹
+cd luma-web
 
-<h2 id="中文">中文</h2>
+# 用 Node（推荐）
+node server.js            # 默认 6789 端口（不易与常用开发端口冲突），可加参数改端口： node server.js 9000
+                       # 若 6789 被占用，Node 会自动尝试 6790、6791… 直到 6799
 
-一款高颜值、纯前端的 Markdown 写作与文档编辑器。支持实时渲染、数学公式（KaTeX）、代码高亮、AI 智能助手（可选）、无限白板（Excalidraw）。
-
-**这是一个纯静态站点，零构建、零后端依赖。** 任何能托管静态文件的地方都能跑——本地双击启动、局域网共享、或部署到云服务器 / 对象存储 / GitHub Pages 均可。
-
-### ☕ 如果喜欢，请送创作者一杯咖啡
-
-Luma 由独立开发者维护、永远免费。如果你觉得它帮上了忙，欢迎扫码赞赏——这会成为我持续改进的动力 ✨
-
-<img src="donate.jpg" alt="赞赏码" width="240">
-
-> **如果喜欢请送创作者一杯咖啡** — 微信扫一扫即可
-
-### 目录结构
-
+# 或用 Python
+python -m http.server 6789
 ```
-luma-web/
-├── index.html              # 入口页面（通过服务器打开，勿用 file://）
-├── server.js               # 零依赖 Node 静态服务器（一键脚本用它）
-├── luma-start.bat          # Windows 一键启动（双击即可）
-├── start.sh                # macOS / Linux 一键启动
-├── README.md               # 本文件（中英双语）
-├── INSTALL.md              # 安装部署详细教程（本地 + 云服务器）
-│
-├── js/                     # 编辑器核心（21 个功能模块，按依赖顺序加载）
-├── css                     # 编辑器主题样式（vite-app / bw-typora-editor / bw-ai）
-├── vendor/                 # 第三方库（本地，离线可用）
-│   ├── markdown-it.min.js   # Markdown 解析
-│   ├── html-to-image.js     # 导出图片
-│   └── highlight.min.js     # 代码高亮
-├── highlight/              # 代码高亮主题（github / github-dark）
-├── katex.min.css / .js     # 数学公式渲染
-├── fonts/                  # KaTeX 字体（本地）
-└── whiteboard/             # 无限白板模块（Excalidraw，本地 vendor）
-```
-
-> 说明：本文件夹已从完整工程中**剥离出纯网页代码**，桌面端（Tauri/Windows exe）的 Rust 构建文件、`_backup` 历史备份、内部规划文档等均未包含，体积仅约 8 MB。整个包**零运行时外部依赖**，可完全离线运行。
-
-### 快速开始
-
-- **Windows**：双击 `luma-start.bat`（自动探测 Node.js / Python）。
-- **macOS / Linux**：`./start.sh`（首次 `chmod +x start.sh`）。
-- **手动**：`node server.js`（或 `node server.js 9000`）/ `python -m http.server 6789`，访问 `http://localhost:6789/`（默认端口 6789，不易与常用开发端口冲突；被占用时 Node 会自动顺延）。
-
-> ⚠️ 不要直接双击 `index.html` 用 `file://` 打开：白板、字体、部分模块在 `file://` 下会被浏览器安全策略拦截。**务必通过服务器方式访问。**
-
-### 功能一览
-
-- 实时 Markdown 渲染，Shift+空格 切换「源码 / 预览」
-- 数学公式（行内 `$...$` 与块级 `$$...$$`，KaTeX 渲染）
-- 代码块语法高亮（highlight.js，离线本地）
-- 文档导出（HTML / 图片）
-- 无限白板（Excalidraw，可嵌入文档）
-- 主题切换（明亮 / 暗色）
-- AI 智能助手（**可选**：需在设置中填入 API Key）
-
-### 关于 AI 助手（可选）
-
-AI 副驾默认关闭。启用需在编辑器设置中填写提供商与 API Key（DeepSeek / OpenAI / Anthropic / 本地 Ollama）。该模块仅在用户主动开启且填写 Key 后才联网，**不影响普通编辑功能**，页面加载不发起任何外部请求。
-
-### 部署
-
-本地自用看上面；公网部署（Nginx / 对象存储 / GitHub Pages 等）详见 **[INSTALL.md](./INSTALL.md)**。
-
+浏览器打开 `http://localhost:6789/` 即可。
+### ⚠️ 重要：不要直接双击 index.html
+`file://` 协议下，浏览器安全策略会拦截白板 iframe、字体加载和部分模块，**页面会残缺**。
+必须通过上面的「服务器方式」访问（`http://localhost:...`）。
 ---
-
-<h2 id="english">English</h2>
-
-A beautiful, pure-frontend Markdown writing & document editor. Features live preview, math (KaTeX), code highlighting, an optional AI copilot, and an infinite whiteboard (Excalidraw).
-
-**It is a 100% static site — zero build step, zero backend.** Run it anywhere static files can be served: double-click to launch locally, share over LAN, or deploy to a cloud server / object storage / GitHub Pages.
-
-### ☕ Buy me a coffee
-
-Luma is maintained by an indie developer and always free. If it helped you, feel free to scan the QR code and buy me a cup of coffee — it keeps me going ✨
-
-<img src="donate.jpg" alt="Tip QR" width="240">
-
-> **If you enjoy it, please buy the creator a cup of coffee** — scan the WeChat QR.
-
-### Project Structure
-
+## 二、云服务器部署（公网可访问）
+### 方案 1：Nginx 反向代理（生产推荐）
+适合有自己域名、追求稳定与 HTTPS 的场景。
+**1. 上传文件**
+把 `luma-web` 整个文件夹上传到服务器，例如 `/var/www/luma/`。
+**2. 安装 Nginx**
+```bash
+# Ubuntu / Debian
+sudo apt update && sudo apt install -y nginx
 ```
-luma-web/
-├── index.html              # Entry page (open via a server, not file://)
-├── server.js               # Zero-dependency Node static server (used by the launchers)
-├── luma-start.bat          # One-click launcher for Windows
-├── start.sh                # One-click launcher for macOS / Linux
-├── README.md               # This file (bilingual)
-├── INSTALL.md              # Full install & deploy guide (local + cloud)
-│
-├── js/                     # Editor core (21 feature modules, loaded in dependency order)
-├── css                     # Editor themes (vite-app / bw-typora-editor / bw-ai)
-├── vendor/                 # Vendored libraries (local, works offline)
-│   ├── markdown-it.min.js   # Markdown parsing
-│   ├── html-to-image.js     # Export to image
-│   └── highlight.min.js     # Code highlighting
-├── highlight/              # Highlight.js themes (github / github-dark)
-├── katex.min.css / .js     # Math rendering
-├── fonts/                  # KaTeX fonts (local)
-└── whiteboard/             # Infinite whiteboard module (Excalidraw, local vendor)
+**3. 写站点配置** `/etc/nginx/sites-available/luma`：
+```nginx
+server {
+    listen 80;
+    server_name luma.example.com;   # 改成你的域名
+
+    root /var/www/luma;
+    index index.html;
+
+    # 静态资源长缓存
+    location ~* \.(css|js|woff2?|ttf|svg|png|jpg|ico|json|map)$ {
+        expires 7d;
+        add_header Cache-Control "public";
+    }
+
+    # SPA / 目录回退到 index.html
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}
 ```
-
-> Note: this folder contains only the **pure web code** extracted from the full project. The desktop (Tauri / Windows exe) Rust build, `_backup`, and internal planning docs are excluded — about 8 MB total. The package has **zero runtime external dependencies** and runs fully offline.
-
-### Quick Start
-
-- **Windows**: double-click `luma-start.bat` (auto-detects Node.js / Python).
-- **macOS / Linux**: `./start.sh` (run `chmod +x start.sh` once first).
-- **Manual**: `node server.js` (or `node server.js 9000`) / `python -m http.server 6789`, then open `http://localhost:6789/` (default port 6789, avoids common dev-port clashes; Node auto-increments if busy).
-
-> ⚠️ Do **not** open `index.html` directly with `file://`: the whiteboard, fonts, and some modules are blocked by browser security policies under `file://`. Always use a server.
-
-### Features
-
-- Live Markdown rendering; Shift+Space to toggle source / preview
-- Math (inline `$...$` and block `$$...$$`, rendered by KaTeX)
-- Code-block syntax highlighting (highlight.js, local/offline)
-- Document export (HTML / image)
-- Infinite whiteboard (Excalidraw, embeddable in documents)
-- Theme switching (light / dark)
-- Optional AI copilot (enable in settings with an API Key)
-
-### About the AI Copilot (Optional)
-
-The AI assistant is **off by default**. To enable it, enter a provider and API Key (DeepSeek / OpenAI / Anthropic / local Ollama) in settings. It only calls the provider when you actively use AI features and never makes external requests on page load.
-
-### Deploy
-
-For local use see above. For public deployment (Nginx / object storage / GitHub Pages, etc.) see **[INSTALL.md](./INSTALL.md)**.
+启用并重启：
+```bash
+sudo ln -s /etc/nginx/sites-available/luma /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
+```
+**4. 域名 + HTTPS（强烈建议）**
+在域名解析控制台把 `luma.example.com` A 记录指向服务器 IP，然后：
+```bash
+sudo apt install -y certbot python3-certbot-nginx
+sudo certbot --nginx -d luma.example.com
+```
+Certbot 会自动签发免费证书并配置 HTTPS，且自动续期。
+**5. 防火墙**
+- 云厂商控制台：放行 **80 / 443** 入站。
+- 服务器本身（若开了 ufw）：`sudo ufw allow 'Nginx Full'`
+---
+### 方案 2：Node 直接跑（轻量 / 临时）
+无需 Nginx，适合小流量或内网穿透：
+```bash
+cd /var/www/luma
+PORT=8080 node server.js
+```
+再配合反向代理（如 Cloudflare Tunnel / frp / 宝塔）暴露到公网。
+> 生产环境建议仍用 Nginx 兜一层并加 HTTPS。
+---
+### 方案 3：静态托管平台（零运维）
+纯静态，可直接丢给以下任意平台（通常免费）：
+- **GitHub Pages**：把 `luma-web` 内容推到仓库，Settings → Pages 开启。
+- **对象存储 + CDN**：阿里云 OSS / 腾讯云 COS / Cloudflare Pages，开启「静态网站托管」并把根目录设为 `luma-web`。
+- **Netlify / Vercel**：拖拽上传文件夹即可。
+这些平台默认就是 HTTPS，最简单的公网方案。
+---
+## 三、关于 AI 助手（可选）
+AI 副驾默认关闭、且不依赖任何外部服务即可正常编辑。
+如需启用，在编辑器内「设置」填入 API Key 与提供商（DeepSeek / OpenAI / Anthropic / 本地 Ollama）。
+启用后**仅在你主动使用 AI 功能时**才向对应服务发请求，页面加载本身不联网。
+---
+## 四、常见问题（FAQ）
+**Q1：页面打不开 / 白屏？**
+- 确认是用服务器方式访问（`http://localhost:...`），不是双击 `index.html`。
+- 检查端口是否被占用：`node server.js 9000` 换端口试试（默认已是较冷门的 6789，冲突概率很低）。
+**Q2：白板打不开 / 一直转圈？**
+- 白板依赖 `whiteboard/vendor/` 目录完整。确认上传时没漏掉子文件夹。
+- 不要用 `file://` 打开，必须走 http 服务器。
+**Q3：公式、代码高亮不显示？**
+- 确认 `katex.min.*`、`vendor/highlight.min.js`、`highlight/` 都在。这些是本地文件，无需联网。
+**Q4：云服务器部署后访问慢？**
+- 给静态资源加了 `expires` 缓存（见 Nginx 配置）后第二次会很快。
+- 国内服务器建议用对象存储 + CDN，比直接回源快很多。
+**Q5：想要改端口 / 绑定域名？**
+- 本地：`node server.js 9000`。
+- 域名：按方案 1 配 Nginx 的 `server_name`。
+**Q6：会收集我的数据吗？**
+- 纯前端，文档默认只存在浏览器本地（localStorage / 内存）。除非你主动使用「导出」或「AI 助手」，否则数据不出本机。
+---
+## 五、目录对照（部署时别漏）
+部署时整包上传即可，关键项：
+| 必须 | 作用 |
+|---|---|
+| `index.html` | 入口 |
+| `js/` | 全部编辑器逻辑 |
+| `vendor/`、`highlight/` | 第三方库（离线） |
+| `katex.min.*`、`fonts/` | 公式与字体 |
+| `whiteboard/`（含其 `vendor/`） | 白板模块 |
+| `*.css` | 样式 |
+`server.js` / `luma-start.bat` / `start.sh` 仅本地启动用，部署到 Nginx 等时可不传（传了也无妨）。
