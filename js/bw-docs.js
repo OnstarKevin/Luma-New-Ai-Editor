@@ -177,6 +177,37 @@
     }
     if (!found) docs.push(rec);
     docStoreSave(docs);
+    // 若已绑定本地文件夹，同步写回磁盘
+    if (typeof bwFilesSaveToDisk === 'function') bwFilesSaveToDisk(host);
+  }
+
+  // 自动保存到本地文档库（编辑时 debounce）
+  function scheduleDocAutosave(host) {
+    var st = stateMap.get(host);
+    if (!st) return;
+    if (st._docSaveTimer) clearTimeout(st._docSaveTimer);
+    st._docSaveTimer = setTimeout(function () {
+      saveCurrentDoc(host);
+      if (typeof updateLocalSaveStatus === 'function') updateLocalSaveStatus(host, 'saved');
+    }, 1200);
+  }
+
+  // 标题输入时立即保存（不必 debounce）
+  var _bwTitleChangeBound = false;
+  function bwBindTitleAutosave() {
+    if (_bwTitleChangeBound) return;
+    _bwTitleChangeBound = true;
+    document.addEventListener('input', function (e) {
+      if (!e.target || !e.target.id || e.target.id !== 'bwTitleInput') return;
+      var host = e.target.closest('[data-bw-doc-editor]');
+      if (host) saveCurrentDoc(host);
+    });
+    // 内容编辑自动保存
+    document.addEventListener('input', function (e) {
+      if (!e.target || !e.target.classList || !e.target.classList.contains('bw-block')) return;
+      var host = e.target.closest('[data-bw-doc-editor]');
+      if (host) scheduleDocAutosave(host);
+    });
   }
 
   function renderDocMenu(host) {
@@ -184,13 +215,25 @@
     if (!menu) return;
     var docs = docStoreLoad();
     var activeId = (stateMap.get(host) || {}).docId || '';
-    var html = '';
+    var html = '<div class="bw-file-tree">';
+    html += '<div class="bw-file-tree-header">📁 我的文档 <span class="bw-file-tree-count">' + docs.length + '</span></div>';
+    if (!docs.length) {
+      html += '<div class="bw-file-tree-empty">还没有文档，点击下方新建</div>';
+    }
     docs.forEach(function (d) {
-      html += '<button class="bw-doc-item' + (d.id === activeId ? ' active' : '') + '" data-doc-id="' + escapeHtml(d.id) + '">' + escapeHtml(d.title || '未命名文档') + '</button>';
+      var isActive = d.id === activeId ? ' active' : '';
+      html += '<div class="bw-file-tree-item' + isActive + '" data-doc-id="' + escapeHtml(d.id) + '">';
+      html += '<span class="bw-file-tree-icon">📝</span>';
+      html += '<span class="bw-file-tree-name" data-doc-rename>' + escapeHtml(d.title || '未命名文档') + '</span>';
+      html += '<span class="bw-file-tree-actions">';
+      html += '<button class="bw-file-tree-act" data-doc-act="rename" title="重命名">✎</button>';
+      html += '<button class="bw-file-tree-act bw-file-tree-del" data-doc-act="delete" title="删除">✕</button>';
+      html += '</span></div>';
     });
-    html += '<div class="bw-doc-menu-sep"></div>';
+    html += '</div>';
+    html += '<div class="bw-file-tree-footer">';
     html += '<button class="bw-doc-new" data-doc-action="new">+ 新建文档</button>';
-    html += '<button class="bw-doc-del" data-doc-action="delete" aria-label="删除当前文档"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="fill:none;stroke:currentColor;width:14px;height:14px;vertical-align:middle;margin-right:6px"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>删除当前</button>';
+    html += '</div>';
     menu.innerHTML = html;
   }
 
@@ -213,12 +256,64 @@
     });
     menu.addEventListener('click', function (e) {
       e.stopPropagation();
-      var t = e.target.closest('button');
-      if (!t) return;
-      if (t.dataset.docId) { switchDoc(host, t.dataset.docId); menu.style.display = 'none'; }
-      else if (t.dataset.docAction === 'new') { newDoc(host); menu.style.display = 'none'; }
-      else if (t.dataset.docAction === 'delete') { deleteDoc(host); menu.style.display = 'none'; }
+      var act = e.target.closest('[data-doc-act]');
+      var newBtn = e.target.closest('[data-doc-action="new"]');
+      // 重命名 / 删除按钮
+      if (act) {
+        var item = act.closest('.bw-file-tree-item');
+        if (!item) return;
+        var id = item.getAttribute('data-doc-id');
+        if (act.getAttribute('data-doc-act') === 'rename') {
+          renameDoc(host, id);
+        } else if (act.getAttribute('data-doc-act') === 'delete') {
+          if (id === (stateMap.get(host) || {}).docId) { deleteDoc(host); }
+          else { deleteDocById(host, id); }
+        }
+        return;
+      }
+      if (newBtn) { newDoc(host); menu.style.display = 'none'; return; }
+      // 切换：点击项目主体（不是按钮）
+      var itemEl = e.target.closest('.bw-file-tree-item');
+      if (itemEl) {
+        switchDoc(host, itemEl.getAttribute('data-doc-id'));
+        menu.style.display = 'none';
+      }
     });
+    // 双击标题也可重命名
+    menu.addEventListener('dblclick', function (e) {
+      var name = e.target.closest('[data-doc-rename]');
+      if (!name) return;
+      var item = name.closest('.bw-file-tree-item');
+      if (!item) return;
+      renameDoc(host, item.getAttribute('data-doc-id'));
+    });
+  }
+
+  function deleteDocById(host, id) {
+    var docs = docStoreLoad().filter(function (d) { return d.id !== id; });
+    docStoreSave(docs);
+    renderDocMenu(host);
+  }
+
+  function renameDoc(host, id) {
+    var docs = docStoreLoad();
+    var doc = null;
+    for (var i = 0; i < docs.length; i++) { if (docs[i].id === id) { doc = docs[i]; break; } }
+    if (!doc) return;
+    var newTitle = window.prompt('重命名文档', doc.title || '未命名文档');
+    if (newTitle === null || !newTitle.trim()) return;
+    doc.title = newTitle.trim();
+    docStoreSave(docs);
+    if (id === (stateMap.get(host) || {}).docId) {
+      var titleEl = $('#bwTitleInput', host);
+      if (titleEl) titleEl.value = doc.title;
+      var st = stateMap.get(host);
+      if (st) st.title = doc.title;
+      var infoTitle = $('#bwDocInfoTitle', host);
+      if (infoTitle) infoTitle.textContent = doc.title;
+      saveCurrentDoc(host);
+    }
+    renderDocMenu(host);
   }
 
   function switchDoc(host, id) {

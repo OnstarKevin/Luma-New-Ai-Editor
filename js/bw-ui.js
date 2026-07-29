@@ -64,8 +64,6 @@
         '<div class="bw-top-actions">' +
           '<span class="bw-word-count" id="bwWordCount">0 字</span>' +
           '<div class="bw-doc-wrap">' +
-            '<button class="bw-tool-btn bw-doc-btn" id="bwDocBtn" title="文档管理" aria-label="文档管理"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="fill:none;stroke:currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span class="bw-tooltip">文档</span></button>' +
-            '<div class="bw-doc-menu" id="bwDocMenu" style="display:none;"></div>' +
           '</div>' +
           '<div class="bw-export-wrap">' +
             '<button class="bw-tool-btn bw-export-btn" id="bwExportBtn" title="导出" aria-label="导出"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="fill:none;stroke:currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span class="bw-tooltip">导出</span></button>' +
@@ -92,6 +90,7 @@
         '<button class="bw-tool-btn" data-action="code" title="行内代码" aria-label="行内代码"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="8 7 3 12 8 17"/><polyline points="16 7 21 12 16 17"/></svg><span class="bw-tooltip">代码</span></button>' +
         '<button class="bw-tool-btn" data-action="link" title="链接" aria-label="链接"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="fill:none;stroke:currentColor"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg><span class="bw-tooltip">链接</span></button>' +
         '<button class="bw-tool-btn" data-action="image" title="图片" aria-label="图片"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="fill:none;stroke:currentColor"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span class="bw-tooltip">图片</span></button>' +
+        '<button class="bw-tool-btn" data-action="emoji" title="表情符号" aria-label="表情符号"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg><span class="bw-tooltip">表情</span></button>' +
         '<div class="bw-toolbar-sep"></div>' +
         '<div class="bw-align-group" role="group" aria-label="图片对齐">' +
           '<button class="bw-tool-btn bw-align-btn" data-align="left" title="图片左对齐" aria-label="图片左对齐"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h10M4 18h13"/></svg><span class="bw-tooltip">左对齐</span></button>' +
@@ -113,11 +112,21 @@
 
       '<div class="bw-editor-body">' +
         '<div class="bw-toc-sidebar" id="bwTocSidebar">' +
-          '<div class="bw-toc-header">' +
-            '<span class="bw-toc-title">目录</span>' +
-            '<button class="bw-toc-collapse-btn" id="bwTocCollapse"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>' +
+          '<div class="bw-sb-tabs">' +
+            '<button class="bw-sb-tab active" data-sb-tab="toc">目录</button>' +
+            '<button class="bw-sb-tab" data-sb-tab="files">文档</button>' +
           '</div>' +
-          '<div class="bw-toc-list" id="bwTocList"></div>' +
+          '<div class="bw-sb-panel bw-sb-toc" id="bwTocPanel">' +
+            '<div class="bw-toc-list" id="bwTocList"></div>' +
+          '</div>' +
+          '<div class="bw-sb-panel bw-sb-files" id="bwFilesPanel" style="display:none">' +
+            '<div class="bw-files-toolbar">' +
+              '<button class="bw-files-action" id="bwFilesNew">+ 新建</button>' +
+              '<button class="bw-files-action" id="bwFilesOpenFolder">📂 打开文件夹</button>' +
+            '</div>' +
+            '<div class="bw-files-list" id="bwFilesList"></div>' +
+          '</div>' +
+          '<button class="bw-toc-collapse-btn" id="bwTocCollapse"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>' +
         '</div>' +
         '<div class="bw-toc-reveal"><button class="bw-toc-reveal-btn" id="bwTocReveal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button></div>' +
         '<div class="bw-content-area" id="bwContentArea">' +
@@ -162,7 +171,6 @@
     if (pubBtn) pubBtn.addEventListener('click', function () { doPublish(host); });
 
     // Document management & export dropdowns
-    wireDocMenu(host, st);
     wireExportMenu(host, st);
     if (!host._bwMenuClickBound) {
       host._bwMenuClickBound = true;
@@ -177,6 +185,10 @@
         var infoTitle = $('#bwDocInfoTitle', host);
         if (infoTitle) infoTitle.textContent = this.value || '未命名文档';
         markDirty(this);
+        // 自动保存 + 刷新目录
+        if (typeof scheduleDocAutosave === 'function') scheduleDocAutosave(host);
+        var docEl = $('.bw-doc', host);
+        if (docEl && typeof updateTOC === 'function') updateTOC(docEl, st);
       });
       // Commit a single undo step when the title edit session ends.
       titleInput.addEventListener('change', function () {
@@ -201,10 +213,16 @@
           case 'image': insertImage($('#bwFileInput', host)); break;
           case 'math': insertMathFormula(); break;
           case 'table': insertTable(); break;
+          case 'emoji':
+            window._bwEmojiHost = host;
+            if (typeof bwEmojiToggle === 'function') bwEmojiToggle();
+            break;
           case 'theme': toggleTheme(host); break;
           case 'focus': toggleFocusMode(host); break;
           case 'source': toggleSourceMode(host); break;
         }
+        // 工具栏操作完成后恢复编辑器焦点
+        refocusEditor(host);
       });
     });
 
@@ -266,6 +284,21 @@
         if (tocCollapseBtn) tocCollapseBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>';
       });
     }
+
+    // Sidebar tab switching
+    var sbTabs = $$('.bw-sb-tab', host);
+    var tocPanel = $('#bwTocPanel', host);
+    var filesPanel = $('#bwFilesPanel', host);
+    sbTabs.forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        sbTabs.forEach(function (t) { t.classList.remove('active'); });
+        tab.classList.add('active');
+        var which = tab.getAttribute('data-sb-tab');
+        if (tocPanel) tocPanel.style.display = which === 'toc' ? '' : 'none';
+        if (filesPanel) filesPanel.style.display = which === 'files' ? '' : 'none';
+        if (which === 'files' && typeof bwFilesRender === 'function') bwFilesRender(host);
+      });
+    });
 
     // Focus exit
     var focusExitBtn = $('#bwFocusExitBtn', host);

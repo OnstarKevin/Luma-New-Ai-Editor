@@ -169,6 +169,11 @@
   function enterEdit(block) {
     block._mergePending = false;
     removeLivePreview(block);
+    // 点击非选中块时清空多块选择
+    var hostE = block.closest('.' + NS);
+    if (!block.classList.contains('bw-selected') && $$('.bw-block.bw-selected', hostE).length > 0) {
+      clearMultiBlockSelection(hostE);
+    }
     $$('.bw-block.editing', block.parentNode).forEach(function (b) {
       if (b !== block) leaveEdit(b);
     });
@@ -248,9 +253,53 @@
   }
 
   function onBlockKeydown(e, block) {
-    // Cross-block caret movement: Up/Down flow through every line, ignoring
-    // block boundaries. Only intercept at the first/last visual line; inside
-    // a multi-line block the browser handles line-to-line natively.
+    // ── Shift+Arrow: multi-block selection ──
+    if (e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+      e.preventDefault();
+      var hostSel = block.closest('.' + NS);
+      var docSel = $('#bwDoc', hostSel);
+      if (!docSel) return;
+      var blocks = $$('.bw-block:not(.bw-placeholder)', docSel);
+      var selected = $$('.bw-block.bw-selected', docSel);
+      var stSel = stateMap.get(hostSel);
+      if (selected.length === 0) {
+        // 启动选择：锚点 = 当前块，先选中当前块 + 相邻块
+        if (stSel) stSel._selAnchor = block;
+        block.classList.add('bw-selected');
+        var adj = e.key === 'ArrowUp' ? getNextBlock(block, 'prev') : getNextBlock(block, 'next');
+        if (adj) { adj.classList.add('bw-selected'); adj.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+      } else {
+        // 扩展选择：在方向上找最远的已选块，再往外扩一个
+        if (e.key === 'ArrowUp') {
+          for (var i = 0; i < blocks.length; i++) {
+            if (blocks[i].classList.contains('bw-selected')) {
+              if (i > 0 && !blocks[i - 1].classList.contains('bw-selected')) {
+                blocks[i - 1].classList.add('bw-selected');
+                blocks[i - 1].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+              }
+              break;
+            }
+          }
+        } else {
+          for (var j = blocks.length - 1; j >= 0; j--) {
+            if (blocks[j].classList.contains('bw-selected')) {
+              if (j < blocks.length - 1 && !blocks[j + 1].classList.contains('bw-selected')) {
+                blocks[j + 1].classList.add('bw-selected');
+                blocks[j + 1].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+              }
+              break;
+            }
+          }
+        }
+      }
+      // 保持焦点在操作块
+      block.focus();
+      // 若 AI 面板已初始化，更新浮动菜单
+      if (typeof bwAiUpdateSelMenu === 'function') { setTimeout(function () { bwAiUpdateSelMenu(hostSel); }, 60); }
+      return;
+    }
+
+    // ── Normal cross-block caret movement (ArrowUp/Down, no modifiers) ──
     if (!e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey) {
       if (e.key === 'ArrowUp' && isCaretOnFirstLine(block)) {
         e.preventDefault();
@@ -264,9 +313,52 @@
       }
     }
 
-    // Ctrl/Cmd+A: select only the current block content, never the full document
+    // ── Esc: clear multi-block selection ──
+    if (e.key === 'Escape') {
+      clearMultiBlockSelection(block.closest('.' + NS));
+      return;
+    }
+
+    // ── 多块操作：Ctrl+C 复制 / Delete|Backspace 删除 ──
+    var hostMK = block.closest('.' + NS);
+    var selBlocks = $$('.bw-block.bw-selected', hostMK);
+    if (selBlocks.length > 1) {
+      // Ctrl/Cmd+C: 复制选中块为 Markdown
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'C')) {
+        e.preventDefault();
+        var md = selBlocks.map(function (b) { return b.dataset.md || b.textContent || ''; }).join('\n\n');
+        navigator.clipboard.writeText(md).catch(function () { /* 降级：不阻塞 */ });
+        clearMultiBlockSelection(hostMK);
+        return;
+      }
+      // Delete / Backspace: 删除所有选中块
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        e.preventDefault();
+        var docElMK = $('#bwDoc', hostMK);
+        var stMK = stateMap.get(hostMK);
+        selBlocks.forEach(function (b) { b.remove(); });
+        clearMultiBlockSelection(hostMK);
+        if (docElMK) ensureTrailingEmptyBlock(docElMK);
+        if (stMK) {
+          updateTOC(docElMK, stMK);
+          updateWordCount(hostMK);
+          pushUndo(hostMK, stMK);
+        }
+        return;
+      }
+    }
+
+    // ── Ctrl/Cmd+Shift+A: select all blocks in document ──
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'a' || e.key === 'A')) {
+      e.preventDefault();
+      selectAllBlocks(block.closest('.' + NS));
+      return;
+    }
+
+    // ── Ctrl/Cmd+A: select only the current block content ──
     if ((e.ctrlKey || e.metaKey) && (e.key === 'a' || e.key === 'A')) {
       e.preventDefault();
+      clearMultiBlockSelection(block.closest('.' + NS));
       var sel = window.getSelection();
       var rngA = document.createRange();
       rngA.selectNodeContents(block);
@@ -611,6 +703,50 @@
     sel.removeAllRanges();
     sel.addRange(rng);
   }
+
+  /* ────── 多块选择（Shift+Arrow）────── */
+  // 清除当前文档中所有块的多选高亮
+  function clearMultiBlockSelection(host) {
+    var docEl = $('#bwDoc', host);
+    if (!docEl) return;
+    $$('.bw-block.bw-selected', docEl).forEach(function (b) { b.classList.remove('bw-selected'); });
+    var st = stateMap.get(host);
+    if (st) delete st._selAnchor;
+  }
+
+  // 全选文档中所有非占位块
+  function selectAllBlocks(host) {
+    var docEl = $('#bwDoc', host);
+    if (!docEl) return;
+    clearMultiBlockSelection(host);
+    var st = stateMap.get(host);
+    var blocks = $$('.bw-block:not(.bw-placeholder)', docEl);
+    var first = blocks[0];
+    blocks.forEach(function (b) { b.classList.add('bw-selected'); });
+    if (st && first) st._selAnchor = first;
+  }
+
+  // 获取相邻块（跳过占位块）
+  function getNextBlock(block, dir) {
+    var blocks = $$('.bw-block:not(.bw-placeholder)', block.parentNode);
+    var idx = blocks.indexOf(block);
+    if (dir === 'next' && idx < blocks.length - 1) return blocks[idx + 1];
+    if (dir === 'prev' && idx > 0) return blocks[idx - 1];
+    return null;
+  }
+  /* ────── /多块选择 ────── */
+
+  // 点击编辑器空白区域（非块）时清除多块选择
+  (function () {
+    document.addEventListener('click', function (e) {
+      var block = e.target.closest('.bw-block');
+      var doc = e.target.closest('.bw-doc');
+      if (doc && !block) {
+        var host = doc.closest('.' + NS);
+        if (host && $$('.bw-block.bw-selected', host).length) clearMultiBlockSelection(host);
+      }
+    });
+  })();
 
   function markDirty(block) {
     var root = block.closest('.' + NS);

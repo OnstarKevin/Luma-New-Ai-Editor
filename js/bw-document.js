@@ -125,6 +125,17 @@
   function buildDoc(md, contentEl, st) {
     contentEl.innerHTML = '';
 
+    // ── 预处理：提取脚注定义 ──
+    var footnoteDefs = {};
+    var lines = md.split('\n');
+    var cleanLines = [];
+    lines.forEach(function (l) {
+      var fm = l.match(/^\[\^([^\]]+)\]:\s+([\s\S]*)$/);
+      if (fm) { footnoteDefs[fm[1]] = fm[2].trim(); return; }
+      cleanLines.push(l);
+    });
+    md = cleanLines.join('\n');
+
     // Split into blocks: $$ fences are special
     var rawLines = md.split('\n');
     var blocks = [];
@@ -147,14 +158,20 @@
         blocks.push({ type: 'math', tex: texLines.join('\n').trim() });
       } else if (/^```/.test(line)) {
         var codeLines = [];
-        var langMatch = line.match(/^```\w*/);
+        var langMatch = line.match(/^```(\w+)/);
+        var lang = langMatch ? langMatch[1] : '';
         i++;
         while (i < rawLines.length && !/^```\s*$/.test(rawLines[i])) {
           codeLines.push(rawLines[i]);
           i++;
         }
         if (i < rawLines.length) i++; // skip closing ```
-        blocks.push({ type: 'code', text: codeLines.join('\n'), lang: langMatch ? langMatch[0].replace('```', '') : '' });
+        var codeText = codeLines.join('\n');
+        if (lang === 'mermaid') {
+          blocks.push({ type: 'mermaid', text: codeText });
+        } else {
+          blocks.push({ type: 'code', text: codeText, lang: lang });
+        }
       } else if (line.trim() === '' || line.trim() === '---') {
         if (line.trim() === '---') blocks.push({ type: 'hr' });
         else blocks.push({ type: 'empty' });
@@ -162,6 +179,27 @@
       } else if (/^!\[([^\]]*)\]\((.+?)(?:#bw-align-(left|center|right))?\)$/.test(line)) {
         // Standalone image block (may carry #bw-align-<side> alignment fragment)
         blocks.push({ type: 'image', text: line });
+        i++;
+      } else if (/^\|.+\|$/.test(line) && (i + 1 < rawLines.length) && /^\|[\s\-:|]+\|$/.test(rawLines[i + 1])) {
+        // Table: header + separator + optional body rows
+        var headerCells = parseTableRow(line);
+        var separators = parseTableRow(rawLines[i + 1]);
+        i += 2;
+        var bodyRows = [];
+        while (i < rawLines.length && /^\|.+\|$/.test(rawLines[i])) {
+          bodyRows.push(parseTableRow(rawLines[i]));
+          i++;
+        }
+        var aligns = separators.map(function (s) {
+          var t = s.trim();
+          if (t.startsWith(':') && t.endsWith(':')) return 'center';
+          if (t.endsWith(':')) return 'right';
+          return 'left';
+        });
+        var origLines = rawLines.slice(i - 2 - bodyRows.length, i);
+        blocks.push({ type: 'table', header: headerCells, rows: bodyRows, aligns: aligns, text: origLines.join('\n') });
+      } else if (/^[*-] \[[ x]\]/.test(line)) {
+        blocks.push({ type: 'task', text: line, checked: /\[x\]/.test(line) });
         i++;
       } else if (/^#{1,6}\s+/.test(line) || /^[*-]\s+/.test(line) || /^\d+\.\s+/.test(line) || /^>\s?/.test(line.trim())) {
         // Heading / list item / blockquote: own single-line block, do NOT merge with following text
@@ -195,8 +233,9 @@
         el.className = 'bw-block code';
         el.dataset.md = '```' + (blk.lang || '') + '\n' + blk.text + '\n```';
         el.dataset.lang = blk.lang || '';
-        // Build code block with language label and code
-        el.innerHTML = '<div class="bw-code-header"><span class="bw-code-lang">' + escapeHtml(blk.lang || 'plain') + '</span></div><pre><code class="language-' + escapeHtml(blk.lang || 'plain') + '">' + escapeHtml(blk.text) + '</code></pre>';
+        // Build code block with language label, copy button and line numbers
+        var numberedLines = blk.text.split('\n').map(function (l) { return '<span class="bw-code-line">' + escapeHtml(l || ' ') + '</span>'; }).join('\n');
+        el.innerHTML = '<div class="bw-code-header"><span class="bw-code-lang">' + escapeHtml(blk.lang || 'plain') + '</span><button class="bw-code-copy-btn" type="button" onclick="bwCopyCode(this)" title="复制代码">复制</button></div><pre><code class="language-' + escapeHtml(blk.lang || 'plain') + '">' + numberedLines + '</code></pre>';
         // Apply syntax highlighting if available
         applyHighlight(el);
         makeEditable(el);
@@ -215,6 +254,26 @@
         el.dataset.md = blk.text;       // 含 #bw-align- 片段，序列化可无损往返
         el.dataset.align = imAlign;
         el.innerHTML = bwImageWrapHtml(imSrc, imAlt);
+      } else if (blk.type === 'mermaid') {
+        el = document.createElement('div');
+        el.className = 'bw-block mermaid';
+        el.dataset.md = '```mermaid\n' + blk.text + '\n```';
+        el.innerHTML = '<div class="bw-code-header"><span class="bw-code-lang">mermaid</span></div><div class="bw-mermaid-wrap"><pre class="bw-mermaid-src">' + escapeHtml(blk.text) + '</pre></div>';
+        makeEditable(el);
+      } else if (blk.type === 'task') {
+        el = document.createElement('div');
+        var checked = blk.checked;
+        el.className = 'bw-block task' + (checked ? ' checked' : '');
+        el.dataset.md = blk.text;
+        el.dataset.checked = checked ? '1' : '0';
+        var taskText = blk.text.replace(/^[*-] \[[ x]\]\s*/, '');
+        el.innerHTML = '<span class="bw-task-cb" contenteditable="false">' + (checked ? '&#9745;' : '&#9744;') + '</span><span class="bw-rendered">' + renderRichInline(taskText) + '</span>';
+        makeEditable(el);
+      } else if (blk.type === 'table') {
+        el = document.createElement('div');
+        el.className = 'bw-block table';
+        el.dataset.md = blk.text;
+        el.innerHTML = buildTableHtml(blk);
       } else if (blk.type === 'empty') {
         el = document.createElement('div');
         el.className = 'bw-block p';
@@ -248,6 +307,9 @@
     updateTOC(contentEl, st);
     // Always end with a blank line so the caret can move below any block
     ensureTrailingEmptyBlock(contentEl);
+    // Footnotes
+    window._bwFnDefs = footnoteDefs;
+    renderFootnotes(contentEl);
   }
 
 
@@ -413,5 +475,60 @@
       else { nodes.push({ type: 'text', text: text[pos] }); pos++; }
     }
     return nodes.length ? nodes : [{ type: 'text', text: '' }];
+  }
+
+  /* ============================================================
+   * TABLE HELPERS
+   * ============================================================ */
+  function parseTableRow(line) {
+    return line.replace(/^\||\|$/g, '').split('|').map(function (c) { return c.trim(); });
+  }
+
+  function buildTableHtml(blk) {
+    var html = '<div class="bw-table-wrap"><table>';
+    // Header
+    html += '<thead><tr>';
+    (blk.header || []).forEach(function (h, i) {
+      var al = (blk.aligns && blk.aligns[i]) ? ' style="text-align:' + blk.aligns[i] + '"' : '';
+      html += '<th' + al + '>' + renderRichInline(h) + '</th>';
+    });
+    html += '</tr></thead><tbody>';
+    // Body
+    (blk.rows || []).forEach(function (row) {
+      html += '<tr>';
+      row.forEach(function (cell, i) {
+        var al = (blk.aligns && blk.aligns[i]) ? ' style="text-align:' + blk.aligns[i] + '"' : '';
+        html += '<td' + al + '>' + renderRichInline(cell || '') + '</td>';
+      });
+      html += '</tr>';
+    });
+    html += '</tbody></table></div>';
+    return html;
+  }
+
+  /* ============================================================
+   * FOOTNOTE HELPERS
+   * ============================================================ */
+  function renderFootnotes(docEl) {
+    if (!docEl) return;
+    var existing = $('.bw-footnotes', docEl);
+    if (existing) existing.remove();
+    var keys = Object.keys(window._bwFnDefs || {});
+    if (!keys.length) return;
+    var div = document.createElement('div');
+    div.className = 'bw-footnotes';
+    div.innerHTML = '<hr class="bw-fn-sep"><ol>' +
+      keys.map(function (k) {
+        return '<li id="bw-fn-' + k + '"><a class="bw-fn-backref" href="#bw-fnref-' + k + '">&#8617;</a> ' + escapeHtml(window._bwFnDefs[k]) + '</li>';
+      }).join('') +
+      '</ol>';
+    docEl.appendChild(div);
+  }
+
+  // Replace [^label] with superscript footnote ref
+  function renderFootnotedText(text) {
+    return text.replace(/\[\^([^\]]+)\]/g, function (_, label) {
+      return '<sup class="bw-fn-ref" id="bw-fnref-' + label + '" data-fn="' + label + '">[' + label + ']</sup>';
+    });
   }
 

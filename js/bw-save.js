@@ -98,3 +98,109 @@
     bwToast(host, '当前为本地预览，无法发布', { type: 'warn' });
   }
 
+  /* ============================================================
+   * LOCAL OFFLINE AUTOSAVE (always on, independent of autosaveUrl)
+   * ============================================================ */
+  // 全局 dirty 标记：是否有未保存到 localStorage 的改动
+  var _bwLocalDirty = false;
+
+  function bwLocalKey(host) {
+    return 'bw-doc-' + (host.id || 'default');
+  }
+
+  // 从 localStorage 恢复最近内容（启动时调用）
+  function bwLocalRestore(host) {
+    try {
+      var raw = localStorage.getItem(bwLocalKey(host));
+      if (!raw) return false;
+      var saved = JSON.parse(raw);
+      if (!saved || !saved.md) return false;
+      // 重建文档
+      var docEl = $('#bwDoc', host);
+      if (docEl && typeof buildDoc === 'function') {
+        buildDoc(saved.md, docEl, stateMap.get(host));
+        return true;
+      }
+    } catch (e) { /* 静默 */ }
+    return false;
+  }
+
+  // 把当前内容写入 localStorage（debounce 由调用方控制）
+  function bwLocalSave(host, opts) {
+    try {
+      var st = stateMap.get(host);
+      if (!st) return;
+      var docEl = $('.bw-doc', host);
+      if (!docEl) return;
+      var title = ($('#bwTitleInput', host) && $('#bwTitleInput', host).value) || '';
+      var md = (typeof getBodyMarkdown === 'function') ? getBodyMarkdown(host) : '';
+      var data = { md: md, title: title, ts: Date.now() };
+      localStorage.setItem(bwLocalKey(host), JSON.stringify(data));
+      _bwLocalDirty = false;
+      updateLocalSaveStatus(host, 'saved', data.ts);
+      if (opts && opts.silent !== true) {
+        // 节流提示：避免每秒钟弹 toast
+        if (!host._bwLastLocalSave || Date.now() - host._bwLastLocalSave > 3000) {
+          host._bwLastLocalSave = Date.now();
+        }
+      }
+    } catch (e) { updateLocalSaveStatus(host, 'error'); }
+  }
+
+  // 安排本地保存（默认 1.2 秒 debounce）
+  function bwLocalSchedule(host) {
+    var st = stateMap.get(host);
+    if (!st) return;
+    if (st._localSaveTimer) clearTimeout(st._localSaveTimer);
+    _bwLocalDirty = true;
+    updateLocalSaveStatus(host, 'pending');
+    st._localSaveTimer = setTimeout(function () { bwLocalSave(host); }, 1200);
+  }
+
+  // 状态指示器（DOM 已存在则复用，否则无副作用）
+  function updateLocalSaveStatus(host, status, ts) {
+    var ind = $('.bw-save-indicator', host);
+    if (!ind) return;
+    var labels = { saved: '已自动保存', saving: '保存中...', pending: '编辑中...', error: '保存失败' };
+    ind.className = 'bw-save-indicator ' + status;
+    var label = labels[status] || status;
+    if (status === 'saved' && ts) {
+      var d = new Date(ts);
+      var hh = String(d.getHours()).padStart(2, '0');
+      var mm = String(d.getMinutes()).padStart(2, '0');
+      var ss = String(d.getSeconds()).padStart(2, '0');
+      label = label + ' · ' + hh + ':' + mm + ':' + ss;
+    }
+    ind.textContent = label;
+  }
+
+  // 关闭浏览器/刷新前提示未保存
+  var _bwBeforeUnloadBound = false;
+  function bwSetupBeforeUnload() {
+    if (_bwBeforeUnloadBound) return;
+    _bwBeforeUnloadBound = true;
+    window.addEventListener('beforeunload', function (e) {
+      if (_bwLocalDirty) {
+        e.preventDefault();
+        // 现代浏览器忽略自定义文案，仅需返回非空字符串
+        e.returnValue = '有未保存的修改，确定要离开吗？';
+        return '有未保存的修改，确定要离开吗？';
+      }
+    });
+    // 兜底：tab 切换/隐藏时立即保存
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'hidden' && _bwLocalDirty) {
+        var host = document.querySelector('[data-bw-doc-editor]');
+        if (host) bwLocalSave(host, { silent: true });
+      }
+    });
+  }
+
+  // 监听内容变化：标记脏
+  document.addEventListener('input', function (e) {
+    if (!e.target || !e.target.classList || !e.target.classList.contains('bw-block')) return;
+    var host = e.target.closest('[data-bw-doc-editor]');
+    if (!host) return;
+    bwLocalSchedule(host);
+  });
+

@@ -9,18 +9,57 @@
    * FORMAT TOOLBAR ACTIONS
    * ============================================================ */
   function surroundSelection(before, after) {
+    // 直接在文本层写入 Markdown 标记，不依赖脆弱的 DOM Range
+    var block = getActiveEditBlock();
+    if (!block) return;
+    var text = block.textContent || '';
+    // 优先取当前选区，若已被工具栏清掉则用 mousedown 时保存的
     var sel = window.getSelection();
-    if (!sel.rangeCount) return;
-    var rng = sel.getRangeAt(0);
-    if (!rng.collapsed) {
-      var txt = rng.toString();
-      rng.deleteContents();
-      rng.insertNode(document.createTextNode(before + txt + after));
-      rng.setStart(rng.startContainer, rng.startOffset + before.length);
-      rng.setEnd(rng.endContainer, rng.endOffset - after.length);
-      sel.removeAllRanges();
-      sel.addRange(rng);
+    var range = null;
+    if (sel && sel.rangeCount && !sel.isCollapsed && block.contains(sel.anchorNode)) {
+      range = sel.getRangeAt(0);
+    } else if (window._bwSavedRange && block.contains(window._bwSavedRange.startContainer)) {
+      range = window._bwSavedRange;
     }
+    if (!range) return;
+    var selStart = getTextOffset(block, range.startContainer, range.startOffset);
+    var selEnd = getTextOffset(block, range.endContainer, range.endOffset);
+    if (selStart === undefined || selStart === selEnd) return;
+    if (selStart > selEnd) { var tmp = selStart; selStart = selEnd; selEnd = tmp; }
+    var selected = text.substring(selStart, selEnd);
+    var newText = text.substring(0, selStart) + before + selected + after + text.substring(selEnd);
+    block.textContent = newText;
+    // 同步 dataset.md 防止 refocusEditor → enterEdit 回退
+    block.dataset.md = newText;
+    // 恢复光标到 closing marker 之后
+    var cursorPos = selStart + before.length + selected.length + after.length;
+    setCaretAtOffset(block, cursorPos);
+    // 触发变更回调
+    block.dispatchEvent(new Event('input', { bubbles: true }));
+    markDirty(block);
+    var st = stateMap.get(block.closest('.' + NS));
+    if (st) pushUndo(block.closest('.' + NS), st);
+    window._bwSavedRange = null;
+  }
+
+  // 获取文本节点相对于块的偏移量
+  function getTextOffset(block, node, offset) {
+    var pos = 0;
+    var walker = document.createTreeWalker(block, NodeFilter.SHOW_TEXT, null);
+    var n;
+    while ((n = walker.nextNode())) {
+      if (n === node) return pos + Math.min(offset, n.textContent.length);
+      pos += n.textContent.length;
+    }
+    return pos;
+  }
+
+  // 获取当前正在编辑的块
+  function getActiveEditBlock() {
+    var active = document.activeElement;
+    if (active && active.classList.contains('bw-block') && active.classList.contains('editing')) return active;
+    // fallback: 找任意 editing 块
+    return document.querySelector('.bw-block.editing');
   }
 
   function insertHeading(level) {

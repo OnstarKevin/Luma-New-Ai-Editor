@@ -127,7 +127,13 @@
     if (block.classList.contains('code')) {
       var lang = block.dataset.lang || '';
       var codeText = stripCodeFences(md);
-      block.innerHTML = '<div class="bw-code-header"><span class="bw-code-lang">' + escapeHtml(lang || 'code') + '</span></div><pre><code class="language-' + escapeHtml(lang || 'plain') + '">' + escapeHtml(codeText) + '</code></pre>';
+      var numberedLines = codeText.split('\n').map(function (l) { return '<span class="bw-code-line">' + escapeHtml(l || ' ') + '</span>'; }).join('\n');
+      block.innerHTML =
+        '<div class="bw-code-header">' +
+          '<span class="bw-code-lang">' + escapeHtml(lang || 'code') + '</span>' +
+          '<button class="bw-code-copy-btn" type="button" onclick="bwCopyCode(this)" title="复制代码">复制</button>' +
+        '</div>' +
+        '<pre><code class="language-' + escapeHtml(lang || 'plain') + '">' + numberedLines + '</code></pre>';
       applyHighlight(block);
       return;
     }
@@ -209,14 +215,17 @@
   // 行内富渲染：优先 markdown-it，失败回退旧正则逻辑（renderInlineLegacy）
   function renderRichInline(raw) {
     var md = getMD();
+    var html;
     if (md) {
       try {
         var prot = protectMath(raw || '');
-        var html = md.renderInline(prot.md);
-        return restoreMath(html, prot.store);
-      } catch (_) { /* fall through */ }
-    }
-    return renderInlineLegacy(raw || '');
+        html = md.renderInline(prot.md);
+        html = restoreMath(html, prot.store);
+      } catch (_) { html = renderInlineLegacy(raw || ''); }
+    } else { html = renderInlineLegacy(raw || ''); }
+    // Footnote references
+    if (typeof renderFootnotedText === 'function') html = renderFootnotedText(html);
+    return html;
   }
 
   // 普通段落：把软换行（单个 \n）渲染成 <br>，使粘贴的含换行纯文本保留换行，

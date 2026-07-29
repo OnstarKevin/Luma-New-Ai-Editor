@@ -120,10 +120,15 @@ function bwAiRun(cmdName, prompt, host) {
   if (!cmd) return;
   if (!BWAI.isConfigured()) { bwAiShowConfigNotice(host); bwAiTogglePanel(host, true); return; }
   var ctx = bwAiCaptureContext(host);
-  // 全文上下文：默认开启，聊天类命令自动附带整篇文档，免去手动 @doc（省心；关闭可省 Token）
+  // 全文上下文：开关开启时，所有命令都会附上整篇文档（聊天类自动，操作类注入系统消息）
   var effPrompt = prompt;
-  if (cmd.scope === 'chat' && refs.includeDoc && !/\@doc\b/.test(prompt || '')) {
-    effPrompt = (prompt || '') + '\n\n【全文上下文】\n' + (ctx.docText || '(空)') + '\n';
+  if (refs.includeDoc && !/\@doc\b/.test(prompt || '')) {
+    if (cmd.scope === 'chat') {
+      effPrompt = (prompt || '') + '\n\n【全文上下文】\n' + (ctx.docText || '(空)') + '\n';
+    } else {
+      // 选区/块级命令也附上全文作为背景上下文
+      effPrompt = (prompt || ctx.selectionText || ctx.blockText || '') + '\n\n【全文上下文（供参考全文）】\n' + (ctx.docText || '');
+    }
   }
   var history = (cmd.scope === 'chat') ? (refs.history || []).slice(-10) : [];
   var userLabel = (cmd.scope === 'chat') ? (prompt || '(空)')

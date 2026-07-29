@@ -17,7 +17,21 @@ var SUMMARIZE_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" 
 
 /* ---------- 上下文捕获（Token 节省的核心：只取必要文本） ---------- */
 function bwAiCaptureContext(host) {
-  var ctx = { host: host, selectionText: '', blockText: '', block: null, range: null, docText: '' };
+  var ctx = { host: host, selectionText: '', blockText: '', block: null, range: null, docText: '', multiBlock: false, selectedBlocks: null };
+
+  // ── 多块选择优先 ──
+  var selBlocks = $$('.bw-block.bw-selected', host);
+  if (selBlocks.length > 1) {
+    ctx.multiBlock = true;
+    ctx.selectedBlocks = selBlocks;
+    ctx.selectionText = selBlocks.map(function (b) { return b.dataset.md || b.textContent || ''; }).join('\n\n');
+    ctx.block = selBlocks[0];
+    ctx.blockText = ctx.selectionText;
+    try { ctx.docText = (typeof getBodyMarkdown === 'function') ? getBodyMarkdown(host) : ''; } catch (e) { ctx.docText = ''; }
+    return ctx;
+  }
+
+  // ── 传统单块 / 文本选择 ──
   var sel = (typeof window !== 'undefined' && window.getSelection) ? window.getSelection() : null;
   if (sel && sel.rangeCount && !sel.isCollapsed) {
     var range = sel.getRangeAt(0);
@@ -61,6 +75,22 @@ function bwAiBuildSelectionMenu(host, selMenu) {
 
 function bwAiUpdateSelMenu(host) {
   var refs = host._bwAi; if (!refs) return;
+
+  // ── 多块选择优先：将菜单定位到第一个选中块 ──
+  var selBlocks = $$('.bw-block.bw-selected', host);
+  if (selBlocks.length > 1) {
+    var firstRect = selBlocks[0].getBoundingClientRect();
+    var lastRect = selBlocks[selBlocks.length - 1].getBoundingClientRect();
+    var pr = host.getBoundingClientRect();
+    // 菜单定位在最后一个选中块的右下角
+    var topB = lastRect.bottom - pr.top + 8;
+    var leftB = firstRect.left - pr.left;
+    refs.selMenu.style.display = 'flex';
+    refs.selMenu.style.top = Math.max(48, topB) + 'px';
+    refs.selMenu.style.left = Math.max(8, leftB) + 'px';
+    return;
+  }
+
   var sel = window.getSelection();
   if (sel && !sel.isCollapsed && sel.rangeCount) {
     var r = sel.getRangeAt(0);
@@ -87,6 +117,37 @@ function bwAiProofreadCorrected(text) {
 }
 
 function bwAiReplaceSelection(ctx, text) {
+  // ── 多块替换 ──
+  if (ctx.multiBlock && ctx.selectedBlocks && ctx.selectedBlocks.length > 0) {
+    var parts = text.split(/\n{2,}/);
+    var blocks = ctx.selectedBlocks;
+    var hostR = ctx.host;
+    blocks.forEach(function (block, i) {
+      var md = i < parts.length ? parts[i].trim() : '';
+      if (!md) return;
+      if (block.classList.contains('editing')) block.classList.remove('editing');
+      block.dataset.md = md;
+      renderBlock(block, md);
+      updateBlockClass(block, md);
+      updateMarkdownIndicator(block);
+      markDirty(block);
+    });
+    // 清除多选高亮
+    blocks.forEach(function (b) { b.classList.remove('bw-selected'); });
+    var st = stateMap.get(hostR);
+    if (st) {
+      var docEl = $('#bwDoc', hostR);
+      if (docEl) {
+        updateTOC(docEl, st);
+        updateWordCount(hostR);
+      }
+      pushUndo(hostR, st);
+      delete st._selAnchor;
+    }
+    return true;
+  }
+
+  // ── 传统单块 / 文本选区替换 ──
   var rng = ctx.range;
   if (!rng || !rng.startContainer || !rng.startContainer.isConnected) return false;
   try {

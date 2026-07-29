@@ -15,6 +15,14 @@
 
 **这是一个纯静态站点，零构建、零后端依赖。** 任何能托管静态文件的地方都能跑——本地双击启动、局域网共享、或部署到云服务器 / 对象存储 / GitHub Pages 均可。
 
+### ☕ 如果喜欢，请送创作者一杯咖啡
+
+Luma 由独立开发者维护、永远免费。如果你觉得它帮上了忙，欢迎扫码赞赏——这会成为我持续改进的动力 ✨
+
+<img src="donate.jpg" alt="赞赏码" width="240">
+
+> **如果喜欢请送创作者一杯咖啡** — 微信扫一扫即可
+
 ### 目录结构
 
 ```
@@ -73,6 +81,14 @@ AI 副驾默认关闭。启用需在编辑器设置中填写提供商与 API Key
 A beautiful, pure-frontend Markdown writing & document editor. Features live preview, math (KaTeX), code highlighting, an optional AI copilot, and an infinite whiteboard (Excalidraw).
 
 **It is a 100% static site — zero build step, zero backend.** Run it anywhere static files can be served: double-click to launch locally, share over LAN, or deploy to a cloud server / object storage / GitHub Pages.
+
+### ☕ Buy me a coffee
+
+Luma is maintained by an indie developer and always free. If it helped you, feel free to scan the QR code and buy me a cup of coffee — it keeps me going ✨
+
+<img src="donate.jpg" alt="Tip QR" width="240">
+
+> **If you enjoy it, please buy the creator a cup of coffee** — scan the WeChat QR.
 
 ### Project Structure
 

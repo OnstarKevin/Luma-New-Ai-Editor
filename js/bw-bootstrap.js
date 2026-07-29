@@ -52,6 +52,11 @@
 
     // Seed undo history with the initial document state
     initHistory(host, st);
+
+    // Local offline autosave (independent of server autosave)
+    if (typeof bwSetupBeforeUnload === 'function') bwSetupBeforeUnload();
+    if (typeof bwBindTitleAutosave === 'function') bwBindTitleAutosave();
+    if (typeof bwFilesRestoreHandle === 'function') bwFilesRestoreHandle(host);
   }
 
 
