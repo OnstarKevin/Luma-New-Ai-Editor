@@ -163,8 +163,7 @@
       '<div class="bw-status-bar">' +
         '<div class="bw-status-left">' +
           '<span id="bwCursorPos">第 1 行，第 1 列</span>' +
-          '<span class="bw-autosave-dot"><span id="bwAutoSaveLabel">自动保存已开启</span></span>' +
-          '<span class="bw-save-indicator saved" id="bwSaveIndicator">已保存</span>' +
+          '<span class="bw-save-indicator saved" id="bwSaveIndicator">● 已保存</span>' +
         '</div>' +
         '<div class="bw-status-right">' +
           '<span class="bw-status-wordcount" id="bwStatusWordCount">0 字</span>' +

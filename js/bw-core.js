@@ -94,13 +94,21 @@
       } else {
         window._bwSavedRange = null;
       }
+      // 阻止 blur → leaveEdit 销毁选区节点
+      window._bwToolPending = true;
     }
-  });
+  }, true); // use capture phase to beat blur event
 
-  // 工具栏操作后恢复编辑器焦点
+  // 工具栏操作后恢复编辑器焦点，并完成之前被延迟的 leaveEdit
   function refocusEditor(host) {
     setTimeout(function () {
+      window._bwToolPending = false;
       var block = $('.bw-block.editing', host || document);
+      // 如果之前跳过了 leaveEdit，现在补上
+      if (block && block._skipLeaveEdit) {
+        if (typeof leaveEdit === 'function') leaveEdit(block);
+        block = $('.bw-block.editing', host || document) || block;
+      }
       if (!block) block = $('.bw-block:last-of-type', host || document);
       if (block && typeof enterEdit === 'function') { block.focus(); }
     }, 10);

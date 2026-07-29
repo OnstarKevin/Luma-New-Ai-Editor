@@ -123,6 +123,11 @@
   }
 
   function renderBlock(block, md) {
+    // Horizontal rule
+    if (/^---+$/.test((md || '').trim())) {
+      block.innerHTML = '<hr>';
+      return;
+    }
     // Code blocks: preserve pre/code structure with highlighting
     if (block.classList.contains('code')) {
       var lang = block.dataset.lang || '';
@@ -169,6 +174,9 @@
     }
     if (isQuote.test(s)) {
       return '<span class="bw-quote-text">' + renderRichInline(s.replace(/^>\s?/, '')) + '</span>';
+    }
+    if (/^---+$/.test(s.trim())) {
+      return '<hr>';
     }
 
     return '<span class="bw-rendered">' + renderPlainParagraph(s) + '</span>';

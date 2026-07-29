@@ -161,7 +161,7 @@
   function updateLocalSaveStatus(host, status, ts) {
     var ind = $('.bw-save-indicator', host);
     if (!ind) return;
-    var labels = { saved: '已保存', saving: '保存中...', pending: '待保存', error: '保存失败' };
+    var labels = { saved: '● 已保存', saving: '● 保存中...', pending: '● 待保存', error: '● 保存失败' };
     ind.className = 'bw-save-indicator ' + status;
     var label = labels[status] || status;
     if (status === 'saved' && ts) {

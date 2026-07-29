@@ -69,10 +69,16 @@
       // 滚动到对应标题
       var targetBlock = items[idx];
       if (targetBlock) targetBlock.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      // 有子项且未展开时：展开子项（不折叠）
-      if (!tgt.classList.contains('bw-toc-expanded') && hasChildEntries(entries, idx)) {
+      // 有子项时：展开/折叠切换
+      if (!hasChildEntries(entries, idx)) return;
+      if (!tgt.classList.contains('bw-toc-expanded')) {
+        // 展开子项
         tgt.classList.add('bw-toc-expanded');
         expandChildren(tocList, idx);
+      } else {
+        // 折叠所有子项
+        tgt.classList.remove('bw-toc-expanded');
+        collapseChildren(tocList, idx);
       }
     };
 
@@ -87,9 +93,6 @@
   }
 
   function expandChildren(tocList, parentIdx) {
-    // 展开 parentIdx 的直接子级：遍历同级条目后用闭包 entries 判 _parent
-    // 由于 updateTOC 中 entries 是局部变量，这里改用 DOM 扫描：
-    // 从 parentIdx 后开始，展开所有 level = parentLevel+1 且在下一个同级之前的内容
     var allItems = tocList.querySelectorAll('.bw-toc-item');
     var parentLevel = -1;
     var pastParent = false;
@@ -98,10 +101,24 @@
       var lvl = parseInt(el.getAttribute('data-toc-level'));
       if (idx === parentIdx) { parentLevel = lvl; pastParent = true; return; }
       if (!pastParent) return;
-      // 遇到同级或更高级标题，停止
       if (lvl <= parentLevel) { pastParent = false; return; }
-      // 只展开直接子级（level == parentLevel + 1）
       if (lvl === parentLevel + 1) el.classList.remove('bw-toc-collapsed');
+    });
+  }
+
+  function collapseChildren(tocList, parentIdx) {
+    var allItems = tocList.querySelectorAll('.bw-toc-item');
+    var parentLevel = -1;
+    var pastParent = false;
+    allItems.forEach(function (el) {
+      var idx = parseInt(el.getAttribute('data-toc-idx'));
+      var lvl = parseInt(el.getAttribute('data-toc-level'));
+      if (idx === parentIdx) { parentLevel = lvl; pastParent = true; return; }
+      if (!pastParent) return;
+      if (lvl <= parentLevel) { pastParent = false; return; }
+      // 折叠所有子级（直接和间接），移除 expanded 和 collapsed 标记
+      el.classList.add('bw-toc-collapsed');
+      el.classList.remove('bw-toc-expanded');
     });
   }
 

@@ -202,6 +202,12 @@
 
   function leaveEdit(block) {
     if (!block.classList.contains('editing')) return;
+    // 工具栏操作进行中：先不执行销毁 innerHTML 的渲染，保留选区节点
+    if (window._bwToolPending) {
+      block._skipLeaveEdit = true;
+      return;
+    }
+    block._skipLeaveEdit = false;
     removeLivePreview(block);
     // Guard: if block was already converted/replaced (not in DOM), skip
     if (!block.isConnected) return;
@@ -243,6 +249,7 @@
     else if (/^[*-]\s+/.test(md)) cls += ' ul';
     else if (/^\d+\.\s+/.test(md)) cls += ' ol';
     else if (/^```/.test(md)) cls += ' code';
+    else if (/^---+$/.test(md.trim())) cls += ' hr';
     else cls += ' p';
     block.className = cls;
   }

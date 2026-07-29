@@ -42,6 +42,14 @@
     _emojiPanel.innerHTML = html;
     document.body.appendChild(_emojiPanel);
 
+    // Esc 关闭
+    _emojiPanel.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') { _emojiPanel.remove(); _emojiPanel = null; }
+    });
+    // 搜索框自动聚焦
+    var searchInput = _emojiPanel.querySelector('.bw-emoji-search');
+    if (searchInput) setTimeout(function () { searchInput.focus(); }, 50);
+
     // Position near toolbar
     var toolbar = document.querySelector('.bw-toolbar');
     if (toolbar) {
