@@ -167,6 +167,8 @@
   }
 
   function enterEdit(block) {
+    // 已在编辑态：不重复进入（保留当前文本和光标位置）
+    if (block.classList.contains('editing')) return;
     block._mergePending = false;
     removeLivePreview(block);
     // 点击非选中块时清空多块选择
@@ -205,6 +207,7 @@
     // 工具栏操作进行中：先不执行销毁 innerHTML 的渲染，保留选区节点
     if (window._bwToolPending) {
       block._skipLeaveEdit = true;
+      block._bwDeferLeave = true;
       return;
     }
     block._skipLeaveEdit = false;
@@ -212,6 +215,14 @@
     // Guard: if block was already converted/replaced (not in DOM), skip
     if (!block.isConnected) return;
     block.classList.remove('editing');
+    // 源码锁定模式：保留原始 Markdown 文字显示，不渲染
+    if (block.hasAttribute('data-source-locked')) {
+      var rawMd = block.textContent || '';
+      block.dataset.md = rawMd;
+      block.classList.add('bw-source-locked');
+      return;
+    }
+    block.classList.remove('bw-source-locked');
     var md = block.textContent || '';
     // Code blocks keep their fences in dataset.md (for serialization) but are
     // edited without them; re-add the fences here so the stored md stays
@@ -325,6 +336,20 @@
       }
     }
 
+    // ── HR 分割线：Backspace/Delete 直接删除 ──
+    if (block.classList.contains('hr') && (e.key === 'Backspace' || e.key === 'Delete')) {
+      e.preventDefault();
+      var adj = e.key === 'Backspace' ? getNextBlock(block, 'prev') : getNextBlock(block, 'next');
+      block.remove();
+      if (adj) { enterEdit(adj); setCaretAtOffset(adj, (adj.textContent || '').length); }
+      else {
+        var hostE = block.closest('.' + NS);
+        var first = $('.bw-block', hostE);
+        if (first) { enterEdit(first); setCaretAtOffset(first, 0); }
+      }
+      return;
+    }
+
     // ── Esc: clear multi-block selection ──
     if (e.key === 'Escape') {
       clearMultiBlockSelection(block.closest('.' + NS));
@@ -399,14 +424,21 @@
       return;
     }
 
-    // Shift+Space: toggle between raw markdown edit and rendered view
+    // Shift+Space: toggle between raw markdown edit and rendered view,
+    //            or lock/unlock source mode (keep raw text visible after blur)
     if (e.key === ' ' && e.shiftKey) {
       e.preventDefault();
       if (block.classList.contains('editing')) {
-        // Currently editing (raw markdown) → render immediately
+        // Currently editing (raw markdown) → render and unlock
+        block.removeAttribute('data-source-locked');
+        leaveEdit(block);
+      } else if (block.hasAttribute('data-source-locked')) {
+        // Locked source → unlock and render
+        block.removeAttribute('data-source-locked');
         leaveEdit(block);
       } else {
-        // Currently rendered → show raw markdown for editing
+        // Currently rendered → lock source mode (keep raw markdown)
+        block.setAttribute('data-source-locked', 'true');
         enterEdit(block);
       }
       return;
@@ -458,6 +490,16 @@
         var rng = sel.getRangeAt(0);
         if (rng.collapsed && isAtEnd(block, rng)) {
           e.preventDefault();
+          // 空段落按下 Enter 不创建新块，防止堆积空白行
+          var isEmpty = (block.textContent || '').trim() === '';
+          var isPlain = !block.classList.contains('ul') && !block.classList.contains('ol') &&
+                        !block.classList.contains('task') && !block.classList.contains('blockquote') &&
+                        !block.classList.contains('code') && !block.classList.contains('h1') &&
+                        !block.classList.contains('h2') && !block.classList.contains('h3');
+          if (isEmpty && isPlain) return; // 空白段落不响应 Enter
+
+          // 保存当前内容防止丢失
+          block.dataset.md = block.textContent || '';
           var nb = document.createElement('div');
           // 延续块类型：列表/任务/引用块按 Enter 后保持同类
           var inheritable = ['ul', 'ol', 'task', 'blockquote'];

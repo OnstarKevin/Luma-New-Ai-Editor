@@ -105,12 +105,21 @@
       window._bwToolPending = false;
       var block = $('.bw-block.editing', host || document);
       // 如果之前跳过了 leaveEdit，现在补上
-      if (block && block._skipLeaveEdit) {
+      // 仅当操作为「退出编辑态」时才补 leaveEdit（如切换标题/引用等）
+      // 行内格式（加粗/斜体/代码/链接）保持编辑态，不补 leaveEdit
+      if (block && block._skipLeaveEdit && block._bwDeferLeave) {
         if (typeof leaveEdit === 'function') leaveEdit(block);
         block = $('.bw-block.editing', host || document) || block;
       }
+      delete block._skipLeaveEdit;
+      delete block._bwDeferLeave;
       if (!block) block = $('.bw-block:last-of-type', host || document);
-      if (block && typeof enterEdit === 'function') { block.focus(); }
+      if (!block) return;
+      if (block.classList.contains('editing')) {
+        block.focus({ preventScroll: true });
+        return;
+      }
+      if (typeof enterEdit === 'function') { block.focus(); }
     }, 10);
   }
 

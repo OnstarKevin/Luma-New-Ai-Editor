@@ -60,8 +60,14 @@
     panel.className = 'bw-plugins-panel';
     panel.id = 'bwPluginsPanel';
     panel.innerHTML = '<div class="bw-plugins-header">🔌 插件 <button class="bw-plugins-close" type="button">×</button></div><div class="bw-plugins-list"></div>';
-    var body = $('.bw-editor-body', host);
-    if (body) body.appendChild(panel);
+    // 插入到工具栏下方，而非内容区末尾（避免滚动）
+    var toolbar = $('.bw-toolbar', host);
+    if (toolbar && toolbar.parentNode) {
+      toolbar.parentNode.insertBefore(panel, toolbar.nextSibling);
+    } else {
+      var body = $('.bw-editor-body', host);
+      if (body) body.appendChild(panel);
+    }
     panel.querySelector('.bw-plugins-close').addEventListener('click', function () { panel.remove(); });
     var list = panel.querySelector('.bw-plugins-list');
     plugins.forEach(function (p) {

@@ -224,7 +224,7 @@
           case 'ulist': insertList(false); break;
           case 'olist': insertList(true); break;
           case 'quote': insertQuote(); break;
-          case 'code': insertCode(); break;
+          case 'code': surroundSelection('`', '`'); break;
           case 'link': surroundSelection('[', '](url)'); break;
           case 'image': insertImage($('#bwFileInput', host)); break;
           case 'math': insertMathFormula(); break;
@@ -375,6 +375,16 @@
     if (docEl) {
       docEl.addEventListener('keyup', function () { updateCursorPos(); bwSyncImageAlign(host); });
       docEl.addEventListener('click', function () { updateCursorPos(); bwSyncImageAlign(host); });
+      // 实时监听光标变化（点击/方向键/输入）
+      document.addEventListener('selectionchange', function () {
+        // 只响应当前 host 内的选区
+        var sel = window.getSelection();
+        if (!sel.rangeCount) return;
+        var n = sel.getRangeAt(0).startContainer;
+        if (!n) return;
+        if (!host.contains(n.nodeType === 3 ? n.parentElement : n)) return;
+        updateCursorPos();
+      });
     }
 
     // 点击编辑区左右的空白（不含任何 .bw-block）→ 进入完全预览模式：
@@ -400,14 +410,16 @@
     if (!sel.rangeCount) { el.textContent = '第 1 行，第 1 列'; return; }
     var rng = sel.getRangeAt(0);
     var node = rng.startContainer;
-    // Locate the nearest editor block (contenteditable) that holds the caret.
     var ref = (node.nodeType === 3 ? node.parentElement : node);
     if (!ref) { el.textContent = '第 1 行，第 1 列'; return; }
     var block = ref.closest('.bw-block.editing') || ref.closest('.bw-block');
     if (!block) { el.textContent = '第 1 行，第 1 列'; return; }
 
-    // Measure the text from the start of the block up to the caret: the number
-    // of newlines gives the row, and the trailing line length gives the column.
+    // 行 = 前面所有��数 + 当前块内换行偏移
+    var allBlocks = Array.from(block.parentNode.querySelectorAll('.bw-block'));
+    var blockIdx = allBlocks.indexOf(block);
+    var beforeBlocks = blockIdx > 0 ? blockIdx : 0;
+
     var before = '';
     try {
       var pre = rng.cloneRange();
@@ -418,7 +430,7 @@
       before = (block.textContent || '').slice(0, rng.startOffset || 0);
     }
     var lines = before.split('\n');
-    var row = lines.length;
+    var row = beforeBlocks + lines.length;
     var col = lines[lines.length - 1].length + 1;
     el.textContent = '第 ' + row + ' 行，第 ' + col + ' 列';
   }
@@ -690,15 +702,40 @@
   function bwRenderGithubPreview(md) {
     var engine = null;
     try {
-      // 复用已有的 markdown-it 实例（含图片包裹等），避免新建
       if (typeof getMD === 'function') engine = getMD();
     } catch (e) {}
 
     if (!engine) return '<pre>' + escapeHtml(md) + '</pre>';
 
     try {
-      var html = engine.render(md);
-      // 后处理：给 h1-h4 注入 id 用于锚点跳转
+      // ── 脚注解析 ──
+      var fnDefs = {};
+      var fnMd = md.replace(/^\[\^(\d+)\]:\s+(.+)$/gm, function (m, id, text) {
+        fnDefs[id] = text.trim();
+        return ''; // 从正文中移除脚注定义行
+      });
+      // 替换脚注引用 [^1] → 上标链接
+      fnMd = fnMd.replace(/\[\^(\d+)\]/g, function (m, id) {
+        if (!fnDefs[id]) return m;
+        return '<sup id="fnref-' + id + '"><a href="#fn-' + id + '">[' + id + ']</a></sup>';
+      });
+
+      var html = engine.render(fnMd);
+
+      // ── 追加脚注节 ──
+      var fnKeys = Object.keys(fnDefs).sort(function (a, b) { return a - b; });
+      if (fnKeys.length > 0) {
+        var fnHtml = '<hr class="bw-fn-sep"><ol class="bw-footnotes">';
+        fnKeys.forEach(function (id) {
+          var defHtml = engine.renderInline(fnDefs[id]);
+          fnHtml += '<li id="fn-' + id + '">' + defHtml +
+            ' <a class="bw-fn-backref" href="#fnref-' + id + '">&#8617;</a></li>';
+        });
+        fnHtml += '</ol>';
+        html += fnHtml;
+      }
+
+      // ── 标题 anchor id ──
       html = html.replace(/<(h[1-4])([^>]*)>/g, function (m, tag, attrs) {
         // 跳过已有 id 的
         if (/id=/.test(attrs)) return m;

@@ -162,7 +162,18 @@
     });
 
     host.classList.add('bw-export-png');
-    var captureHeight = Math.ceil(src.getBoundingClientRect().height);
+
+    // 隐藏页面滚动条，防止截到
+    var bodyPrevOverflow = document.body.style.overflow;
+    var hostPrevOverflow = host.style.overflow;
+    document.body.style.overflow = 'hidden';
+    host.style.overflow = 'hidden';
+
+    // 用 scrollHeight 截全高度（getBoundingClientRect 只给可视区域）
+    var captureHeight = Math.max(
+      Math.ceil(src.scrollHeight),
+      Math.ceil(src.getBoundingClientRect().height)
+    );
 
     window.htmlToImage.toPng(src, {
       pixelRatio: 2,
@@ -186,6 +197,8 @@
         src.style.maxWidth = prev.maxWidth;
         src.style.width = prev.width;
         src.style.boxSizing = prev.boxSizing;
+        document.body.style.overflow = bodyPrevOverflow;
+        host.style.overflow = hostPrevOverflow;
         overflowStack.forEach(function (p) { p[0].style.overflow = p[1]; });
         host.classList.remove('bw-export-png');
         if (btn) btn.innerHTML = prevLabel;

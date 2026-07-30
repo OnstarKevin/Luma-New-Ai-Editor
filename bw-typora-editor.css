@@ -2182,9 +2182,33 @@ body:has([data-bw-doc-editor]) .admin-alerts {
 }
 .bw-source-toggle svg { fill: none; stroke: currentColor; }
 
+/* 源码锁定状态：保留原始 Markdown 显示，浅灰底色提示 */
+.bw-block.bw-source-locked {
+  background: rgba(200,200,200,0.08);
+  border-left: 2px solid var(--bw-accent, #4a6cf7);
+  padding-left: 8px;
+  font-family: 'Courier New', Consolas, monospace;
+  font-size: 0.93em;
+  white-space: pre-wrap;
+  color: var(--bw-text-secondary, #6b7280);
+}
+
 /* 拖拽图片进编辑器时的高亮提示 */
 .bw-typora-v72.bw-drag-over {
   outline: 2px dashed var(--bw-accent, #4a6cf7);
   outline-offset: -6px;
   background: color-mix(in srgb, var(--bw-accent, #4a6cf7) 8%, transparent);
 }
+
+/* ── GitHub 预览：脚注 ── */
+.markdown-body sup a[href^="#fn"] {
+  font-size: 0.75em;
+  color: var(--bw-accent, #4a6cf7);
+  text-decoration: none;
+  padding: 0 2px;
+}
+.bw-fn-sep { margin: 24px 0 12px; opacity: 0.3; }
+.bw-footnotes { font-size: 0.88em; color: var(--bw-text-secondary, #6b7280); padding-left: 1.5em; }
+.bw-footnotes li { margin-bottom: 4px; }
+.bw-fn-backref { text-decoration: none; font-size: 0.85em; color: var(--bw-accent, #4a6cf7); margin-left: 4px; }
+.bw-fn-backref:hover { text-decoration: underline; }

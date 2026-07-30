@@ -18,6 +18,8 @@
   var frameReady = false;
   var pendingScene = null;  // 等白板 ready 后载入的场景
   var pendingReplaceId = null; // 回编：要替换的图块 sceneId
+  var wbPopup = null;        // 独立弹窗
+  var wbPopupReady = false;  // 弹窗就绪标记
 
   /* ---------- 白板全屏覆盖层（in-webview 替代 window.open / 独立 Tauri 窗口） ---------- */
   var overlay = null;          // 全屏覆盖层 DOM
@@ -218,15 +220,14 @@
   function onMessage(ev) {
     var d = ev.data;
     if (!d || d.source !== SELF_SRC) return;
-    // 来源校验：只接受白板抽屉或白板全屏覆盖层
     var fromDrawer = frame && ev.source === frame.contentWindow;
-    var fromOverlay = overlayFrame && ev.source === overlayFrame.contentWindow;
-    if (!fromDrawer && !fromOverlay) return;
-    var win = fromOverlay ? overlayFrame.contentWindow : frame.contentWindow;
+    var fromPopup = wbPopup && (ev.source === wbPopup);
+    if (!fromDrawer && !fromPopup) return;
+    var win = fromPopup ? wbPopup : frame.contentWindow;
 
     if (d.type === 'ready') {
       if (fromDrawer) frameReady = true;
-      if (fromOverlay) overlayFrameReady = true;
+      if (fromPopup) wbPopupReady = true;
       postToWin(win, { type: 'theme', mode: readTheme() });
       if (fromDrawer && pendingScene) { postToFrame({ type: 'load-scene', scene: pendingScene }); pendingScene = null; }
       if (fromOverlay && overlayPendingScene) { postToOverlay({ type: 'load-scene', scene: overlayPendingScene }); overlayPendingScene = null; }
@@ -321,23 +322,42 @@
 
   function openStandalone() {
     ensureHost();
-    buildOverlay();
-    // 关闭右侧抽屉，避免重复白板
+    // 关闭右侧抽屉
     if (drawer) drawer.classList.remove('bw-wb-open');
-    overlay.hidden = false;
-    overlayFrameReady = false;
-    if (!overlayFrame.getAttribute('src')) {
-      overlayFrame.setAttribute('src', 'whiteboard/index.html');
+    // 用 window.open 创建独立弹窗（真正的独立窗口）
+    var w = 1200, h = 800;
+    var left = Math.max(0, (screen.width - w) / 2);
+    var top = Math.max(0, (screen.height - h) / 2);
+    wbPopup = window.open(
+      'whiteboard/index.html',
+      'luma-whiteboard',
+      'width=' + w + ',height=' + h + ',left=' + left + ',top=' + top + ',menubar=no,toolbar=no,status=no'
+    );
+    if (!wbPopup) {
+      if (typeof bwToast === 'function') bwToast(host, '弹窗被浏览器拦截，请允许弹窗后重试', { type: 'error' });
+      return;
     }
+    wbPopupReady = false;
+    // 监听弹窗 ready 消息
+    var readyListener = function (ev) {
+      if (ev.source !== wbPopup || !ev.data || ev.data.type !== 'wb-ready') return;
+      wbPopupReady = true;
+      window.removeEventListener('message', readyListener);
+    };
+    window.addEventListener('message', readyListener);
+    // 通信桥：转发 postMessage
+    window.addEventListener('message', function wbBridge(ev) {
+      if (ev.source !== wbPopup) return;
+      onMessage({ data: ev.data, source: wbPopup });
+    });
   }
 
   function closeStandalone() {
-    if (!overlay || overlay.hidden) return;
-    overlay.hidden = true;
-    overlayPendingScene = null;
-    // 释放 iframe 资源
-    try { overlayFrame.removeAttribute('src'); } catch (_) {}
-    overlayFrameReady = false;
+    if (wbPopup) {
+      try { wbPopup.close(); } catch (_) {}
+      wbPopup = null;
+      wbPopupReady = false;
+    }
   }
 
   function openDrawer() {

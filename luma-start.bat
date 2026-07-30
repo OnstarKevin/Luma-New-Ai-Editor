@@ -1,54 +1,61 @@
 @echo off
-chcp 65001 >nul
-title Luma 网页版 一键启动
-setlocal
-
-:: 切换到本脚本所在目录（无论从哪里双击）
+title Luma
 cd /d "%~dp0"
 
-echo ==================================================
-echo          Luma 网页版 - 一键启动
-echo ==================================================
+echo ============================================
+echo  Luma 编辑器
+echo ============================================
 echo.
 
-:: 清理旧进程，避免端口占用
-for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":6789" ^| findstr "LISTENING"') do taskkill /F /PID %%a >nul 2>nul
-
-:: 优先用 Node（server.js 自带，零依赖）
-where node >nul 2>nul
-if %errorlevel%==0 (
-    echo [1/2] 检测到 Node.js，使用内置服务器启动...
-    echo.
-    start "" http://localhost:6789/
-    node server.js
-    goto :end
+:: 找 Node.js
+set NODE=
+if exist "%~dp0node.exe" (
+    echo [OK] 使用自带 node.exe
+    set NODE=%~dp0node.exe
+    goto :found
+)
+if exist "D:\node.exe" (
+    echo [OK] 使用 D:\node.exe
+    set NODE=D:\node.exe
+    goto :found
+)
+where node >nul 2>&1
+if %errorlevel% equ 0 (
+    echo [OK] 使用系统 PATH 中的 node
+    set NODE=node
+    goto :found
 )
 
-:: 其次用 Python 自带 http.server
-where python >nul 2>nul
-if %errorlevel%==0 (
-    echo [1/2] 检测到 Python，使用内置 http.server 启动...
-    echo.
-    start "" http://localhost:6789/
-    python -m http.server 6789
-    goto :end
-)
-where py >nul 2>nul
-if %errorlevel%==0 (
-    echo [1/2] 检测到 Python (py)，使用内置 http.server 启动...
-    echo.
-    start "" http://localhost:6789/
-    py -m http.server 6789
-    goto :end
-)
-
-:: 都没有，提示安装
-echo [错误] 未检测到 Node.js 或 Python。
+echo [FAIL] 未找到 Node.js
 echo.
-echo 请二选一安装后重试：
-echo   - Node.js: https://nodejs.org/  （推荐，装完直接双击本文件）
-echo   - Python:  https://www.python.org/  （安装时勾选 "Add to PATH"）
-echo.
+echo 下载: https://nodejs.org/
+echo 或把 node.exe 放到本目录
 pause
-:end
-endlocal
+exit /b 1
+
+:found
+:: 杀旧端口
+echo [INFO] 清理旧端口...
+for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":6789" ^| findstr "LISTENING"') do (
+    taskkill /F /PID %%a >nul 2>&1
+)
+
+:: 启动
+echo [INFO] 启动服务器...
+start "luma-server" /B "%NODE%" server.js
+
+:: 等就绪
+echo [INFO] 等待就绪...
+ping 127.0.0.1 -n 5 >nul
+
+:: 开浏览器
+echo [INFO] 打开浏览器...
+start http://localhost:6789/
+
+echo.
+echo ============================================
+echo  Luma 已启动！
+echo  地址: http://localhost:6789/
+echo  关此窗口停止服务器
+echo ============================================
+pause

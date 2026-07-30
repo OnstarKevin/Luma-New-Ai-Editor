@@ -252,6 +252,7 @@
         el.className = 'bw-block hr';
         el.dataset.md = '---';
         el.innerHTML = '<hr>';
+        makeEditable(el);
       } else if (blk.type === 'image') {
         var im = (blk.text || '').match(/^!\[([^\]]*)\]\((.+?)(?:#bw-align-(left|center|right))?\)$/);
         var imAlt = im ? im[1] : '';

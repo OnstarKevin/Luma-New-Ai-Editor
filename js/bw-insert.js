@@ -9,11 +9,9 @@
    * FORMAT TOOLBAR ACTIONS
    * ============================================================ */
   function surroundSelection(before, after) {
-    // 直接在文本层写入 Markdown 标记，不依赖脆弱的 DOM Range
     var block = getActiveEditBlock();
     if (!block) return;
     var text = block.textContent || '';
-    // 优先取当前选区，若已被工具栏清掉则用 mousedown 时保存的
     var sel = window.getSelection();
     var range = null;
     if (sel && sel.rangeCount && !sel.isCollapsed && block.contains(sel.anchorNode)) {
@@ -21,25 +19,52 @@
     } else if (window._bwSavedRange && block.contains(window._bwSavedRange.startContainer)) {
       range = window._bwSavedRange;
     }
-    if (!range) return;
-    var selStart = getTextOffset(block, range.startContainer, range.startOffset);
-    var selEnd = getTextOffset(block, range.endContainer, range.endOffset);
-    if (selStart === undefined || selStart === selEnd) return;
-    if (selStart > selEnd) { var tmp = selStart; selStart = selEnd; selEnd = tmp; }
-    var selected = text.substring(selStart, selEnd);
-    var newText = text.substring(0, selStart) + before + selected + after + text.substring(selEnd);
-    block.textContent = newText;
-    // 同步 dataset.md 防止 refocusEditor → enterEdit 回退
-    block.dataset.md = newText;
-    // 恢复光标到 closing marker 之后
-    var cursorPos = selStart + before.length + selected.length + after.length;
-    setCaretAtOffset(block, cursorPos);
-    // 触发变更回调
+
+    if (range) {
+      // ── 有选区：包裹选区 ──
+      var selStart = getTextOffset(block, range.startContainer, range.startOffset);
+      var selEnd = getTextOffset(block, range.endContainer, range.endOffset);
+      if (selStart !== undefined && selStart !== selEnd) {
+        if (selStart > selEnd) { var t = selStart; selStart = selEnd; selEnd = t; }
+        var selected = text.substring(selStart, selEnd);
+        var newText = text.substring(0, selStart) + before + selected + after + text.substring(selEnd);
+        block.textContent = newText;
+        block.dataset.md = newText;
+        var cursor = selStart + before.length + selected.length + after.length;
+        setCaretAtOffset(block, cursor);
+        block.dispatchEvent(new Event('input', { bubbles: true }));
+        markDirty(block);
+        if (typeof pushUndo === 'function') {
+          var st0 = stateMap.get(block.closest('.' + NS));
+          if (st0) pushUndo(block.closest('.' + NS), st0);
+        }
+        window._bwSavedRange = null;
+        delete block._skipLeaveEdit;
+        delete block._bwDeferLeave;
+        return;
+      }
+    }
+
+    // ── 无选区：插入标记并将光标放在中间 ──
+    var cursorOff;
+    if (sel && sel.rangeCount && block.contains(sel.anchorNode)) {
+      cursorOff = getTextOffset(block, sel.getRangeAt(0).startContainer, sel.getRangeAt(0).startOffset);
+    }
+    if (cursorOff === undefined || cursorOff < 0) cursorOff = text.length;
+    var newText2 = text.substring(0, cursorOff) + before + after + text.substring(cursorOff);
+    block.textContent = newText2;
+    block.dataset.md = newText2;
+    setCaretAtOffset(block, cursorOff + before.length);
     block.dispatchEvent(new Event('input', { bubbles: true }));
     markDirty(block);
-    var st = stateMap.get(block.closest('.' + NS));
-    if (st) pushUndo(block.closest('.' + NS), st);
+    if (typeof pushUndo === 'function') {
+      var st2 = stateMap.get(block.closest('.' + NS));
+      if (st2) pushUndo(block.closest('.' + NS), st2);
+    }
     window._bwSavedRange = null;
+    // 行内格式保持编辑态，不需要补 leaveEdit
+    delete block._skipLeaveEdit;
+    delete block._bwDeferLeave;
   }
 
   // 获取文本节点相对于块的偏移量（处理 container 是元素的情况）
